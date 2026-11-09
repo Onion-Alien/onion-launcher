@@ -41,10 +41,23 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn load(path: &Path) -> Self {
-        let mut c: Config = std::fs::read_to_string(path).ok().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default();
+    /// The saved list. A file that exists but can't be read is moved aside first
+    /// (apps.broken.json), so the next save can't wipe it; its new path comes back too.
+    pub fn load(path: &Path) -> (Self, Option<PathBuf>) {
+        let text = match std::fs::read_to_string(path) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+            r => r.unwrap_or_else(|_| "?".into()), // unreadable: kept aside like a broken one
+        };
+        let (mut c, backup) = if text.trim().is_empty() {
+            (Config::default(), None)
+        } else {
+            match serde_json::from_str(&text) {
+                Ok(c) => (c, None),
+                Err(_) => (Config::default(), keep_aside(path)),
+            }
+        };
         c.tidy();
-        c
+        (c, backup)
     }
     /// Writes a temp file and swaps it in, so a crash mid-write never loses the list.
     pub fn save(&self, path: &Path) {
@@ -71,6 +84,16 @@ impl Config {
     pub fn has(&self, path: &str) -> bool {
         self.apps.iter().any(|a| a.path.eq_ignore_ascii_case(path))
     }
+}
+
+/// Moves `apps.json` to the first free `apps.broken.json`, `apps.broken-2.json`, ...
+/// (copies it if it can't be moved). None if neither worked.
+fn keep_aside(path: &Path) -> Option<PathBuf> {
+    let stem = path.file_stem()?.to_string_lossy().into_owned();
+    let to = (1..1000)
+        .map(|n| path.with_file_name(if n == 1 { format!("{stem}.broken.json") } else { format!("{stem}.broken-{n}.json") }))
+        .find(|p| !p.exists())?;
+    (std::fs::rename(path, &to).is_ok() || std::fs::copy(path, &to).is_ok()).then_some(to)
 }
 
 /// Value after `name` on the command line, e.g. `--config x.json`.

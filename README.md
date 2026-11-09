@@ -45,7 +45,9 @@ your PC" warning the first time: click **More info**, then **Run anyway**.
 ## Your data
 
 Your list of apps is saved in `%APPDATA%\OnionLauncher\apps.json`, and that's all it
-stores. Onion Launcher has no account, no updates check and no usage counting: it never
+stores. If that file ever gets damaged (say, by a typo while editing it by hand), it's kept
+as `apps.broken.json` next to it and Onion Launcher starts with an empty list; it tells you
+once. Onion Launcher has no account, no updates check and no usage counting: it never
 connects to the internet.
 
 **To uninstall:** right-click the tray icon, **Quit Onion Launcher**, then delete

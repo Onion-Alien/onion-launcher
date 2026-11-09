@@ -29,7 +29,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 use theme::{Theme, G_ADD, G_BACK, G_CHECK, G_DELETE, G_FOLDER, G_SEARCH};
 
-use windows::core::{w, PCSTR, PCWSTR};
+use windows::core::{w, HSTRING, PCSTR, PCWSTR};
 use windows::Win32::Foundation::*;
 use windows::Win32::Graphics::Direct2D::ID2D1Bitmap;
 use windows::Win32::Graphics::DirectWrite::*;
@@ -832,7 +832,7 @@ fn main() {
     };
     let forced_scale = config::arg_value(&args, "--scale").and_then(|v| v.parse::<f32>().ok());
     let cfg_path = config::config_path(&args);
-    let cfg = Config::load(&cfg_path);
+    let (cfg, broken) = Config::load(&cfg_path);
     let testing = test.is_some();
 
     unsafe {
@@ -883,6 +883,9 @@ fn main() {
             test,
         });
         log(&format!("glass={glass} scale={scale}"));
+        if let Some(b) = &broken {
+            log(&format!("app list unreadable, kept as {}", b.display()));
+        }
         resize_in_place();
 
         // icons for the saved apps first, then the list of everything installed
@@ -900,6 +903,16 @@ fn main() {
             win::add_tray(hwnd, tray_icon);
             if RegisterHotKey(hwnd, HOTKEY_ID, MOD_WIN | MOD_NOREPEAT, VK_OEM_3.0 as u32).is_err() {
                 MessageBoxW(hwnd, w!("Win+` is already used by another app. The tray icon still works."), w!("Onion Launcher"), MB_ICONWARNING);
+            }
+            if let Some(b) = &broken {
+                let text = format!(
+                    "Your list of apps couldn't be read, so Onion Launcher started with an empty one.
+
+The old list was kept here:
+{}",
+                    b.display()
+                );
+                MessageBoxW(hwnd, &HSTRING::from(text), w!("Onion Launcher"), MB_ICONWARNING);
             }
         }
 
