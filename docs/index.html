@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Onion Launcher: your apps, one key away (free, Windows)</title>
+<meta name="description" content="Press Win + ` and a small box of your favourite apps pops up next to the mouse. Free and open source for Windows 11. One small exe, no install, never goes online.">
+<meta property="og:title" content="Onion Launcher">
+<meta property="og:description" content="Your apps, one key away. Free and open source for Windows 11.">
+<meta property="og:image" content="images/launcher-dark.png">
+<style>
+  :root {
+    --bg: #0b0b12; --card: rgba(255, 255, 255, .035); --edge: rgba(255, 255, 255, .08);
+    --edge-ctl: rgba(255, 255, 255, .34);
+    --text: #f1f0f7; --muted: #a6a5ba; --link: #b3a3ff; --a1: #7c5cff; --a2: #ff5c8a;
+    --display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --body: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+    --grad: linear-gradient(135deg, #6d4cf5, #9a40cc 55%, #c2397f);
+    --gloss: linear-gradient(180deg, rgba(255,255,255,.36), rgba(255,255,255,.1) 38%, rgba(255,255,255,0) 47%, rgba(0,0,0,.08));
+    --glass: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.015));
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.6 var(--body);
+         background-image: radial-gradient(900px 500px at 85% -10%, rgba(124, 92, 255, .18), transparent 70%),
+                           radial-gradient(700px 420px at -10% 30%, rgba(255, 92, 138, .09), transparent 70%); }
+  a { color: var(--link); }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  header { display: flex; align-items: center; gap: 10px; padding: 22px 0; font: 700 18px/1 var(--display); }
+  header .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--grad); }
+
+  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; padding: 40px 0 72px; }
+  .chip { display: inline-block; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--edge);
+          background: var(--card); color: var(--muted); font-size: 14px; }
+  h1 { font: 800 clamp(38px, 5.4vw, 60px)/1.04 var(--display); letter-spacing: -.02em; margin: 18px 0 18px; }
+  h1 em { font-style: normal; background: linear-gradient(90deg, #b9a8ff, #ff8fb0); -webkit-background-clip: text;
+          background-clip: text; color: transparent; }
+  .lede { color: var(--muted); font-size: 19px; margin: 0 0 28px; max-width: 34em; }
+  kbd { font: 600 .9em var(--mono); padding: 1px 7px; border-radius: 6px; border: 1px solid var(--edge-ctl);
+        background: rgba(255,255,255,.06); color: var(--text); white-space: nowrap; }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+  .small { color: var(--muted); font-size: 14px; margin: 16px 0 0; }
+
+  .dl { position: relative; display: inline-flex; align-items: center; gap: 10px; padding: 16px 28px;
+        border-radius: 16px; color: #fff; text-decoration: none; white-space: nowrap;
+        font: 700 18px/1 var(--display); text-shadow: 0 1px 1px rgba(20,8,50,.35);
+        background: var(--gloss), var(--grad); border: 1px solid color-mix(in srgb, var(--a1) 55%, #fff 10%);
+        box-shadow: 0 10px 34px color-mix(in srgb, var(--a1) 45%, transparent), 0 2px 6px rgba(0,0,0,.35),
+                    inset 0 1px 0 rgba(255,255,255,.45), inset 0 -2px 0 rgba(0,0,0,.18);
+        transition: transform .2s, filter .2s; }
+  .dl:hover { transform: translateY(-2px); filter: brightness(1.07); }
+  .dl:active { transform: translateY(1px) scale(.985); }
+  .dl svg { width: 20px; height: 20px; }
+  .ghost { display: inline-flex; align-items: center; padding: 15px 22px; border-radius: 16px;
+           border: 1px solid var(--edge-ctl); color: var(--text); text-decoration: none;
+           font: 600 17px/1 var(--display); background: var(--glass); transition: background .2s, transform .2s; }
+  .ghost:hover { background: rgba(255,255,255,.08); transform: translateY(-1px); }
+  .dl:focus-visible, .ghost:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; }
+
+  .shot { justify-self: center; width: 100%; max-width: 460px; }
+  .shot img { display: block; width: 100%; height: auto; border-radius: 12px;
+              box-shadow: 0 30px 80px -20px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.06); }
+
+  h2 { font: 800 clamp(28px, 3.4vw, 38px)/1.1 var(--display); letter-spacing: -.015em; margin: 0 0 28px; }
+  section.more { padding: 64px 0; border-top: 1px solid var(--edge); }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card { padding: 22px 22px 20px; border-radius: 22px; border: 1px solid var(--edge); background: var(--glass); }
+  .card h3 { font: 700 19px/1.25 var(--display); margin: 0 0 8px; }
+  .card p { margin: 0; color: var(--muted); font-size: 16px; }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+  .split img { display: block; width: 100%; max-width: 420px; height: auto; border-radius: 12px; justify-self: center;
+               box-shadow: 0 30px 80px -24px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.06); }
+  .split p { color: var(--muted); margin: 0 0 14px; }
+
+  ul.facts { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  ul.facts li { padding-left: 28px; position: relative; color: var(--muted); }
+  ul.facts li::before { content: ""; position: absolute; left: 4px; top: .62em; width: 10px; height: 10px;
+                        border-radius: 50%; background: var(--grad); }
+  ul.facts b { color: var(--text); font-weight: 600; }
+  code { font: .92em var(--mono); color: var(--text); }
+
+  footer { padding: 36px 0 48px; border-top: 1px solid var(--edge); color: var(--muted); font-size: 14px; }
+
+  @media (max-width: 860px) {
+    .hero, .split { grid-template-columns: 1fr; gap: 40px; }
+    .hero { padding-top: 16px; }
+    .shot { max-width: 420px; }
+    .cards { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .wrap { padding: 0 16px; }
+    .dl, .ghost { width: 100%; justify-content: center; }
+  }
+  @media (prefers-reduced-motion: reduce) { .dl, .ghost { transition: none; } .dl:hover, .ghost:hover { transform: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><span class="dot" aria-hidden="true"></span>Onion Launcher</header>
+
+  <section class="hero">
+    <div>
+      <span class="chip">Free for Windows 11 · open source · never goes online</span>
+      <h1>Your apps, <em>one key away.</em></h1>
+      <p class="lede">Press <kbd>Win</kbd> + <kbd>`</kbd> and a small box of your favourite apps pops up
+        next to the mouse. Click one, or press its number, and it opens. No Start menu, no desktop full of shortcuts.</p>
+      <div class="ctas">
+        <a class="dl" href="https://github.com/Onion-Alien/onion-launcher/releases/latest/download/OnionLauncher.exe">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 20h14"/></svg>Download for Windows</a>
+        <a class="ghost" href="https://github.com/Onion-Alien/onion-launcher">Source code</a>
+      </div>
+      <p class="small">One small exe, nothing to install · <a href="https://github.com/Onion-Alien/onion-launcher/releases/latest">what's new</a><br>
+        Not code-signed yet, so Windows may warn the first time: click <b>More info</b>, then <b>Run anyway</b>.</p>
+    </div>
+    <div class="shot">
+      <img src="images/launcher-dark.png" width="540" height="540" alt="Onion Launcher in dark mode: app tiles for Chrome, Discord and Spotify, then sections called Games and Create">
+    </div>
+  </section>
+</div>
+
+<section class="more">
+  <div class="wrap">
+    <h2>Everything it does</h2>
+    <div class="cards">
+      <div class="card"><h3>Opens where you are</h3><p><kbd>Win</kbd> + <kbd>`</kbd> or the tray icon. The box appears next to the mouse and closes when you click away or press <kbd>Esc</kbd>.</p></div>
+      <div class="card"><h3>Number keys</h3><p>The first ten apps have numbers. Press <kbd>1</kbd> to <kbd>0</kbd> and they open without touching the mouse.</p></div>
+      <div class="card"><h3>Add anything</h3><p>The <b>+</b> tile searches every app on your PC. Or browse for any program or shortcut, or drop files on the box.</p></div>
+      <div class="card"><h3>Categories</h3><p>Sort apps into sections like Games or Work. Rename or delete a section from its heading.</p></div>
+      <div class="card"><h3>Drag to arrange</h3><p>Drag tiles into the order you like, and in and out of categories.</p></div>
+      <div class="card"><h3>Light and dark</h3><p>Follows Windows' own light or dark mode, and stays sharp on any screen scale.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="more">
+  <div class="wrap split">
+    <img src="images/release-to-remove.png" width="508" height="540" loading="lazy" alt="An app dragged outside the box: the box says Release to remove, Spotify">
+    <div>
+      <h2>Throw it out to remove it</h2>
+      <p>Drag an app out of the box and hold it there. After two seconds it says <b>Release to remove</b>: let go, and it's gone.</p>
+      <p>Changed your mind? Bring it back inside, or let go sooner, and nothing happens. Right-click › <b>Remove</b> works too.</p>
+    </div>
+  </div>
+</section>
+
+<section class="more">
+  <div class="wrap">
+    <h2>Private by design</h2>
+    <ul class="facts">
+      <li><b>Never goes online.</b> No account, no update check, no usage counting.</li>
+      <li><b>Stores one file:</b> your list of apps, in <code>%APPDATA%\OnionLauncher\apps.json</code>.</li>
+      <li><b>Easy to remove:</b> quit it from the tray, then delete the exe and that folder.</li>
+      <li><b>Open source</b> under the GPL-3.0, so anyone can read exactly what it does.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">Onion Launcher by Onion Alien · <a href="https://github.com/Onion-Alien/onion-launcher">GitHub</a> ·
+    <a href="https://github.com/Onion-Alien/onion-launcher/blob/main/LICENSE">GPL-3.0</a><br>
+    App names and icons in the pictures belong to their owners.</div>
+</footer>
+</body>
+</html>

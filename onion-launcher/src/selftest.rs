@@ -121,6 +121,9 @@ pub fn step() {
     if t.tag == "frame" {
         return step_frame(step);
     }
+    if t.tag == "readme" {
+        return step_readme(step);
+    }
     let short = t.tag != "full";
     let n = s.cfg.apps.len();
     match step {
@@ -278,6 +281,28 @@ fn out_right(p: (f32, f32)) -> (f32, f32) {
 }
 fn armed() -> bool {
     st().tile_drag.as_ref().is_some_and(|d| d.armed())
+}
+
+/// The pictures in the README: the box, a hovered tile, and an app held
+/// outside the box until it says "Release to remove". Run it with a made-up
+/// app list (the README says how), never the real one.
+fn step_readme(step: u32) {
+    match step {
+        0 => post(WM_HOTKEY, HOTKEY_ID as usize, LPARAM(0)),
+        3 => snap("grid"), // a moment for the icons to load
+        4 => post(WM_MOUSEMOVE, 0, lp(app_at(1))),
+        5 => snap("hover"),
+        6 => {
+            let from = app_at(2);
+            drag_path(from, out_right(from));
+        }
+        12 => {
+            log(&format!("held out 3 s: armed={}", armed()));
+            snap("remove");
+        }
+        13 => quit(),
+        _ => {}
+    }
 }
 
 /// Categories and dragging. The right-click menu itself can't be clicked on

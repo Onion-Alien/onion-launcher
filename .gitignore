@@ -25,6 +25,8 @@ apps.json.tmp
 /backup-before-refactor/
 *.png
 *.gif
+# except the README / website pictures, made from a made-up app list (--tag readme)
+!docs/images/*.png
 
 # the maintainer's working notes: plans, to-do lists, handoffs
 *-PLAN.md
