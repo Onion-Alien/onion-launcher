@@ -1,0 +1,3 @@
+# git hooks are sh scripts: a CR breaks them
+.githooks/* text eol=lf
+*.sh text eol=lf

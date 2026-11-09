@@ -1,0 +1,43 @@
+# build output
+/target/
+*.exe
+*.pdb
+
+# never publish: secrets, personal data, local machine state
+.sensitive-patterns
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.p12
+*.token
+secrets.*
+credentials*.json
+*.log
+# the app's saved list, if a copy lands here while debugging
+apps.json
+apps.json.tmp
+
+# local test output and old copies (test configs hold real paths; pictures show
+# the apps installed on the PC they ran on)
+/shots/
+/backup-before-refactor/
+*.png
+*.gif
+
+# the maintainer's working notes: plans, to-do lists, handoffs
+*-PLAN.md
+*PLAN*.md
+HANDOFF*
+*-NOTES.md
+TODO*
+
+# editor / OS / tool state
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+.claude/
+__pycache__/
