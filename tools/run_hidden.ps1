@@ -1,12 +1,12 @@
-<# Runs a POC self-test on a hidden Windows desktop ("ql_test"): its windows
+<# Runs the Onion Launcher self-test on a hidden Windows desktop ("onion_launcher_test"): its windows
    exist and render, but never reach the real screen or take focus. #>
 param([Parameter(Mandatory)][string]$CommandLine, [int]$TimeoutSeconds = 40)
 $ErrorActionPreference = "Stop"
-if (-not ("QlHiddenDesk" -as [type])) {
+if (-not ("OnionHiddenDesk" -as [type])) {
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
-public static class QlHiddenDesk {
+public static class OnionHiddenDesk {
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     struct StartupInfo {
         public int cb; public string reserved; public string desktop; public string title;
@@ -25,10 +25,10 @@ public static class QlHiddenDesk {
     [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
     public static int LastPid;
     public static int Run(string cmd, int timeoutMs) {
-        IntPtr desk = CreateDesktop("ql_test", IntPtr.Zero, IntPtr.Zero, 0, 0x10000000, IntPtr.Zero);
+        IntPtr desk = CreateDesktop("onion_launcher_test", IntPtr.Zero, IntPtr.Zero, 0, 0x10000000, IntPtr.Zero);
         if (desk == IntPtr.Zero) throw new Exception("CreateDesktop failed: " + Marshal.GetLastWin32Error());
         StartupInfo si = new StartupInfo(); si.cb = Marshal.SizeOf(si);
-        si.desktop = "WinSta0" + (char)92 + "ql_test";
+        si.desktop = "WinSta0" + (char)92 + "onion_launcher_test";
         ProcessInfo pi;
         if (!CreateProcess(null, cmd, IntPtr.Zero, IntPtr.Zero, false, 0x08000000, IntPtr.Zero, null, ref si, out pi))
             throw new Exception("CreateProcess failed: " + Marshal.GetLastWin32Error());
@@ -41,8 +41,8 @@ public static class QlHiddenDesk {
 }
 "@
 }
-$code = [QlHiddenDesk]::Run($CommandLine, $TimeoutSeconds * 1000)
+$code = [OnionHiddenDesk]::Run($CommandLine, $TimeoutSeconds * 1000)
 if ($code -eq -1) {
-    Stop-Process -Id ([QlHiddenDesk]::LastPid) -Force -ErrorAction SilentlyContinue
-    "TIMEOUT (killed pid $([QlHiddenDesk]::LastPid))"
+    Stop-Process -Id ([OnionHiddenDesk]::LastPid) -Force -ErrorAction SilentlyContinue
+    "TIMEOUT (killed pid $([OnionHiddenDesk]::LastPid))"
 } else { "exit=$code" }

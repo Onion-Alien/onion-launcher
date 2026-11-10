@@ -108,13 +108,5 @@ pub fn config_path(args: &[String]) -> PathBuf {
         return p.into();
     }
     let base = std::env::var_os("APPDATA").map(PathBuf::from).unwrap_or_else(|| ".".into());
-    let path = base.join("OnionLauncher").join("apps.json");
-    // The app was called QuickLaunch before: on the first start, take that list over (a
-    // copy; the old file stays where it is).
-    let old = base.join("QuickLaunch").join("apps.json");
-    if !path.exists() && old.is_file() {
-        let _ = std::fs::create_dir_all(base.join("OnionLauncher"));
-        let _ = std::fs::copy(&old, &path);
-    }
-    path
+    base.join("OnionLauncher").join("apps.json")
 }
