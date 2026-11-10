@@ -13,9 +13,12 @@
 
 mod add;
 mod config;
+mod dialog;
+mod dib;
 mod field;
 mod gfx;
 mod grid;
+mod install;
 mod selftest;
 mod shell;
 mod theme;
@@ -46,6 +49,10 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 const WM_TRAY: u32 = WM_APP + 1;
 const WM_LOADED: u32 = WM_APP + 2;
 const WM_LAUNCHED: u32 = WM_APP + 3;
+/// Sent by the installer (`install::quit_running`) before it replaces or removes the exe.
+pub const WM_QUIT_APP: u32 = WM_APP + 4;
+/// The main window's class; the installer finds the running copy by it.
+pub const CLASS: PCWSTR = w!("OnionLauncher");
 const WM_MOUSELEAVE: u32 = 0x02A3;
 const WM_NCUAHDRAWCAPTION: u32 = 0x00AE;
 const WM_NCUAHDRAWFRAME: u32 = 0x00AF;
@@ -755,6 +762,9 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRES
                 }
             }
             WM_CLOSE => hide_popup(),
+            WM_QUIT_APP => {
+                let _ = DestroyWindow(hwnd);
+            }
             WM_DESTROY => {
                 win::remove_tray(hwnd);
                 PostQuitMessage(0);
@@ -783,7 +793,7 @@ unsafe fn create_window() -> (HWND, HICON) {
     RegisterClassW(&WNDCLASSW {
         lpfnWndProc: Some(wndproc),
         hInstance: module.into(),
-        lpszClassName: w!("OnionLauncher"),
+        lpszClassName: CLASS,
         hCursor: LoadCursorW(None, IDC_ARROW).unwrap_or_default(),
         hIcon: icon(0, LR_DEFAULTSIZE),
         ..Default::default()
@@ -818,6 +828,27 @@ unsafe fn enable_glass(hwnd: HWND) -> bool {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     shell::com_init();
+    // Started with no arguments from anywhere but its installed place (Downloads, say):
+    // this exe is its own installer, like Onion Peel's.
+    match args.get(1).map(String::as_str) {
+        Some("--uninstall") => {
+            if dialog::run(dialog::Page::uninstall()) == Some(dialog::Kind::Uninstalled) {
+                install::remove_leftovers();
+            }
+            return;
+        }
+        Some("--quit") => return install::quit_running(),
+        None if !install::is_installed_copy() => {
+            dialog::run(dialog::Page::install());
+            return;
+        }
+        _ => {}
+    }
+    if config::arg_value(&args, "--tag").as_deref() == Some("setup") {
+        if let Some(dir) = config::arg_value(&args, "--selftest") {
+            return selftest::setup_pictures(std::path::Path::new(&dir));
+        }
+    }
     let test = selftest::Test::from_args(&args);
     // one copy at a time (a second start just quits); the handle stays open until exit
     if test.is_none() {

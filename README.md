@@ -8,7 +8,7 @@ next to the mouse. Click one, or press its number, and it opens.
   <img src="docs/images/launcher-light.png" alt="The same box in light mode" width="49%">
 </p>
 
-Free and open source, for Windows 11. Small (one exe, no install), and it never goes online.
+Free and open source, for Windows 11. Small (one exe, no admin rights), and it never goes online.
 
 ## Using it
 
@@ -34,14 +34,23 @@ Free and open source, for Windows 11. Small (one exe, no install), and it never 
 It follows Windows' light or dark mode by itself. If another app already uses that shortcut,
 Onion Launcher says so when it starts, and the tray icon still works.
 
-## Download
+## Install
 
-Get `OnionLauncher.exe` from the [latest release](../../releases/latest) and run it. There's
-nothing to install. The exe isn't code-signed yet, so Windows may show a "Windows protected
-your PC" warning the first time: click **More info**, then **Run anyway**.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/install-dark.png">
+  <img src="docs/images/install-light.png" width="440" alt="The Install Onion Launcher window: a short description, a 'Start Onion Launcher when Windows starts' checkbox, and Install and Cancel buttons">
+</picture>
 
-**Start it with Windows:** press **Win + R**, type `shell:startup`, and put a shortcut to
-`OnionLauncher.exe` in the folder that opens.
+Download `OnionLauncher.exe` from the [latest release](../../releases/latest) and run it. A
+small window asks whether Onion Launcher should start with Windows; press **Install**. No
+admin rights needed: it goes in `%LOCALAPPDATA%\Programs\Onion Launcher`, the Start menu
+and Settings > Apps.
+
+The exe isn't code-signed yet, so Windows may show a "Windows protected your PC" warning the
+first time: click **More info**, then **Run anyway**. Each release lists the exe's SHA-256,
+so you can check the download with `Get-FileHash OnionLauncher.exe`.
+
+Running a newer `OnionLauncher.exe` updates it, and your list of apps stays.
 
 ## Your data
 
@@ -51,8 +60,9 @@ as `apps.broken.json` next to it and Onion Launcher starts with an empty list; i
 once. Onion Launcher has no account, no updates check and no usage counting: it never
 connects to the internet.
 
-**To uninstall:** right-click the tray icon, **Quit Onion Launcher**, then delete
-`OnionLauncher.exe` and the `%APPDATA%\OnionLauncher` folder.
+**To uninstall:** search the Start menu for **Uninstall Onion Launcher**, or use Settings >
+Apps > Installed apps. Your list stays in `%APPDATA%\OnionLauncher` in case you install it
+again; delete that folder too to remove every trace.
 
 ## Build it yourself
 
@@ -62,7 +72,8 @@ You need [Rust](https://rustup.rs) (stable).
 cargo build --release
 ```
 
-The exe lands in `target\release\OnionLauncher.exe`. To make a copy to share, use
+The exe lands in `target\release\OnionLauncher.exe`. Started on its own it opens the
+install window, like a downloaded copy. To make a copy to share, use
 `powershell -File scripts\build-release.ps1`: it builds the same exe but leaves your own
 folder names out of it, and checks that they're gone.
 

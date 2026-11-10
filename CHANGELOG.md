@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2 (2026-11-11)
+
+- An installer, the same as Onion Peel's: run the downloaded `OnionLauncher.exe` and a
+  small window installs it to `%LOCALAPPDATA%\Programs\Onion Launcher` (no admin rights),
+  with Start menu entries, an entry in Settings > Apps, and an optional "Start Onion
+  Launcher when Windows starts" box (ticked by default). Running a newer exe updates it
+  and keeps your list; **Uninstall Onion Launcher** in the Start menu removes it.
+
 ## 0.2.1 (2026-11-10)
 
 - Fixed: if another program had `apps.json` open when Onion Launcher started, it started

@@ -432,3 +432,52 @@ fn step_cats(step: u32) {
         _ => {}
     }
 }
+
+/// `--selftest <dir> --tag setup`: every page of the install window, dark and light, at 100%
+/// and 150%, saved as pictures without opening a window.
+pub fn setup_pictures(dir: &std::path::Path) {
+    use crate::dialog::{Dialog, Hit, Kind, Page};
+    let busy = || {
+        let mut p = Page::install_as(false, true);
+        p.busy = Some("Installing\u{2026}");
+        p
+    };
+    let failed = || {
+        let why = "Couldn't copy Onion Launcher to %LOCALAPPDATA%\\Programs\\Onion Launcher: The process cannot \
+                   access the file because it is being used by another process. (os error 32)";
+        Page::finished(Kind::Failed, "Couldn't install Onion Launcher", why)
+    };
+    type Case<'a> = (&'a str, &'a dyn Fn() -> Page, Option<Hit>, Option<Hit>);
+    let pages: [Case; 10] = [
+        ("install", &|| Page::install_as(false, true), None, None),
+        ("install-hover", &|| Page::install_as(false, true), Some(Hit::Button(0)), None),
+        ("install-unticked-hover", &|| Page::install_as(false, false), Some(Hit::Check), None),
+        ("install-press-cancel", &|| Page::install_as(false, true), Some(Hit::Button(1)), Some(Hit::Button(1))),
+        ("installing", &busy, None, None),
+        ("update", &|| Page::install_as(true, false), None, None),
+        ("installed", &|| Page::installed(false), None, None),
+        ("uninstall", &Page::uninstall, Some(Hit::Button(1)), None),
+        ("uninstalled", &Page::uninstalled, None, None),
+        ("failed", &failed, None, None),
+    ];
+    let mut log = String::new();
+    for dark in [true, false] {
+        for dpi in [96, 144] {
+            for (name, page, hover, pressed) in &pages {
+                let Some(mut d) = Dialog::new(page(), dark, dpi) else {
+                    log += &format!("{name}: no dialog\n");
+                    continue;
+                };
+                (d.hover, d.pressed) = (*hover, *pressed);
+                d.paint();
+                let theme = if dark { "dark" } else { "light" };
+                let file = format!("setup-{theme}-{}-{name}", dpi * 100 / 96);
+                // GDI leaves alpha at 0 and stores BGRA: make it opaque RGBA
+                let rgba: Vec<u8> = d.back.pixels().as_chunks::<4>().0.iter().flat_map(|p| [p[2], p[1], p[0], 255]).collect();
+                let ok = save_png(&dir.join(format!("{file}.png")), &rgba, d.back.w as u32, d.back.h as u32);
+                log += &format!("{file}: {}x{} ok={ok}\n", d.back.w, d.back.h);
+            }
+        }
+    }
+    let _ = std::fs::write(dir.join("setup-log.txt"), log);
+}
