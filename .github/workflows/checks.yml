@@ -13,9 +13,12 @@ jobs:
     name: Privacy scan and UTC commit times
     runs-on: ubuntu-latest
     steps:
+      # the PR's own commits, not GitHub's test merge (which is stamped in the
+      # account's time zone and is never part of the history)
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Scan every file and commit message in the history
         run: python3 scripts/check_sensitive.py --history
       - name: Commit times in UTC
