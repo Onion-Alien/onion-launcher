@@ -1,0 +1,55 @@
+{
+ "apps": [
+  {
+   "name": "Google Chrome",
+   "path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+  },
+  {
+   "name": "Discord",
+   "path": "shell:AppsFolder\\com.squirrel.Discord.Discord"
+  },
+  {
+   "name": "Spotify",
+   "path": "shell:AppsFolder\\SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify"
+  },
+  {
+   "name": "Steam",
+   "path": "C:\\Program Files (x86)\\Steam\\steam.exe",
+   "category": "Games"
+  },
+  {
+   "name": "Battle.net",
+   "path": "C:\\Program Files (x86)\\Battle.net\\Battle.net Launcher.exe",
+   "category": "Games"
+  },
+  {
+   "name": "Xbox",
+   "path": "shell:AppsFolder\\Microsoft.GamingApp_8wekyb3d8bbwe!Microsoft.Xbox.App",
+   "category": "Games"
+  },
+  {
+   "name": "Visual Studio Code",
+   "path": "C:\\Program Files\\Microsoft VS Code\\Code.exe",
+   "category": "Create"
+  },
+  {
+   "name": "OBS Studio",
+   "path": "C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe",
+   "category": "Create"
+  },
+  {
+   "name": "Blender",
+   "path": "C:\\Program Files\\Blender Foundation\\Blender 5.2\\blender.exe",
+   "category": "Create"
+  },
+  {
+   "name": "Paint",
+   "path": "shell:AppsFolder\\Microsoft.Paint_8wekyb3d8bbwe!App",
+   "category": "Create"
+  }
+ ],
+ "categories": [
+  "Games",
+  "Create"
+ ]
+}

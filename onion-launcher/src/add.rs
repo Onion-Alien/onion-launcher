@@ -89,7 +89,9 @@ fn fold(s: &str) -> String {
 pub fn refill() {
     let s = st();
     let q = fold(s.query.trim());
-    let mut hits: Vec<(u8, usize, Option<(u32, u32)>)> = vec![];
+    // (how well it matches, index into `installed`, where the match is in the name)
+    type Hit = (u8, usize, Option<(u32, u32)>);
+    let mut hits: Vec<Hit> = vec![];
     for (i, e) in s.installed.iter().enumerate() {
         if q.is_empty() {
             hits.push((0, i, None));

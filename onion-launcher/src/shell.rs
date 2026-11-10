@@ -96,7 +96,7 @@ fn start_menu_link_icons() -> HashMap<String, String> {
     let mut map = HashMap::new();
     let mut dirs: Vec<PathBuf> = ["APPDATA", "ProgramData"]
         .iter()
-        .filter_map(|v| std::env::var_os(v))
+        .filter_map(std::env::var_os)
         .map(|b| PathBuf::from(b).join(r"Microsoft\Windows\Start Menu\Programs"))
         .collect();
     while let Some(d) = dirs.pop() {
@@ -149,13 +149,13 @@ pub struct Pixels {
 
 impl Pixels {
     fn blank(&self) -> bool {
-        self.bgra.chunks_exact(4).all(|p| p[3] == 0)
+        self.bgra.as_chunks::<4>().0.iter().all(|p| p[3] == 0)
     }
     /// Some sources hand back straight alpha: premultiply those.
     fn fix_alpha(&mut self) {
-        let straight = self.bgra.chunks_exact(4).any(|p| p[0] > p[3] || p[1] > p[3] || p[2] > p[3]);
+        let straight = self.bgra.as_chunks::<4>().0.iter().any(|p| p[0] > p[3] || p[1] > p[3] || p[2] > p[3]);
         if straight {
-            for p in self.bgra.chunks_exact_mut(4) {
+            for p in self.bgra.as_chunks_mut::<4>().0 {
                 let a = p[3] as u32;
                 for c in &mut p[..3] {
                     *c = ((*c as u32 * a + 127) / 255) as u8;
@@ -258,10 +258,10 @@ unsafe fn hicon_pixels(icon: HICON, size: i32) -> Option<Pixels> {
         Some(px)
     };
     let mut px = grab(DI_NORMAL)?;
-    if px.chunks_exact(4).all(|p| p[3] == 0) {
+    if px.as_chunks::<4>().0.iter().all(|p| p[3] == 0) {
         // old icon without alpha: take transparency from its mask
         let mask = grab(DI_MASK)?;
-        for (p, m) in px.chunks_exact_mut(4).zip(mask.chunks_exact(4)) {
+        for (p, m) in px.as_chunks_mut::<4>().0.iter_mut().zip(mask.as_chunks::<4>().0) {
             if m[0] == 0 { p[3] = 255 } else { p.copy_from_slice(&[0, 0, 0, 0]) }
         }
     }

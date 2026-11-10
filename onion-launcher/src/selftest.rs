@@ -227,7 +227,7 @@ fn window_pixels() -> (Vec<u8>, u32, u32) {
         let _ = DeleteObject(bmp);
         let _ = DeleteDC(dc);
         ReleaseDC(s.hwnd, wdc);
-        for p in px.chunks_exact_mut(4) {
+        for p in px.as_chunks_mut::<4>().0 {
             p.swap(0, 2);
             p[3] = 255;
         }
@@ -240,7 +240,7 @@ fn snap_window(name: &str) {
     render();
     let ours = st().gfx.rgba();
     let (px, w, h) = window_pixels();
-    let differ = px.chunks_exact(4).zip(ours.chunks_exact(4)).filter(|(a, b)| (0..3).any(|c| a[c].abs_diff(b[c]) > 24)).count();
+    let differ = px.as_chunks::<4>().0.iter().zip(ours.as_chunks::<4>().0).filter(|(a, b)| (0..3).any(|c| a[c].abs_diff(b[c]) > 24)).count();
     let t = st().test.as_ref().unwrap();
     let out = t.dir.join(format!("q-{}-{name}.png", t.tag));
     save_png(&out, &px, w, h);

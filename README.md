@@ -12,7 +12,8 @@ Free and open source, for Windows 11. Small (one exe, no install), and it never 
 
 ## Using it
 
-- **Open the box:** press **Win + `** (the key left of 1), or click its icon in the tray.
+- **Open the box:** press **Win + `** (the key left of 1, whatever it shows on your
+  keyboard), or click its icon in the tray.
   Press **Esc** or click anywhere else to close it.
 - **Open an app:** click it, or press its number (**1** to **9**, then **0**).
 - **Add apps:** click the **+** tile (or press **+**) to search every app on the PC, then click
@@ -30,8 +31,8 @@ Free and open source, for Windows 11. Small (one exe, no install), and it never 
   <img src="docs/images/release-to-remove.png" alt="An app held outside the box: the box says Release to remove" width="49%">
 </p>
 
-It follows Windows' light or dark mode by itself. If another app already uses Win + `,
-Onion Launcher says so once and the tray icon still works.
+It follows Windows' light or dark mode by itself. If another app already uses that shortcut,
+Onion Launcher says so when it starts, and the tray icon still works.
 
 ## Download
 
@@ -71,12 +72,16 @@ The app can drive itself (opening the box, hovering, clicking, typing, dragging)
 picture of every step. It runs on a hidden desktop, so nothing appears on your screen:
 
 ```
-powershell -File tools\run_hidden.ps1 -CommandLine "target\release\OnionLauncher.exe --selftest <out folder> --tag cats --theme dark --config <test list>.json"
+copy tests\fixtures\cats.json %TEMP%\cats.json
+powershell -File tools\run_hidden.ps1 -CommandLine "target\release\OnionLauncher.exe --selftest %TEMP% --tag cats --theme dark --config %TEMP%\cats.json"
 ```
 
 Tags: `full`, `dark`, `empty`, `big`, `cats` (categories and dragging), `frame` and `readme`
 (the pictures on this page). `--config` points it at a test copy of the app list, so your
-real list is never touched. Use a made-up list for anything you share.
+real list is never touched; the test may change that copy, so always use a copy.
+Made-up lists live in `tests/fixtures/`: `full.json` and `cats.json` use only apps that
+come with Windows, `empty.json` is empty, and `readme.json` is the list behind the pictures
+(apps that aren't installed show a blank tile).
 
 ## Licence
 

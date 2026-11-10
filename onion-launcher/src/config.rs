@@ -38,35 +38,56 @@ pub struct Config {
     /// category order, top to bottom
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub categories: Vec<String>,
+    /// The saved file exists but couldn't be read or kept aside (another program had it
+    /// open, say): never write over it this run.
+    #[serde(skip)]
+    pub no_save: bool,
 }
 
 impl Config {
-    /// The saved list. A file that exists but can't be read is moved aside first
+    /// The saved list. A file that can't be parsed is moved aside first
     /// (apps.broken.json), so the next save can't wipe it; its new path comes back too.
+    /// A file that can't be read at all, or can't be moved aside, is left alone and
+    /// `no_save` is set.
     pub fn load(path: &Path) -> (Self, Option<PathBuf>) {
         let text = match std::fs::read_to_string(path) {
+            Ok(t) => t,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
-            r => r.unwrap_or_else(|_| "?".into()), // unreadable: kept aside like a broken one
+            Err(_) => return (Config { no_save: true, ..Config::default() }, None),
         };
+        // Notepad and Windows PowerShell can save UTF-8 with a byte-order mark
+        let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
         let (mut c, backup) = if text.trim().is_empty() {
             (Config::default(), None)
         } else {
-            match serde_json::from_str(&text) {
+            match serde_json::from_str(text) {
                 Ok(c) => (c, None),
-                Err(_) => (Config::default(), keep_aside(path)),
+                Err(_) => match keep_aside(path) {
+                    Some(b) => (Config::default(), Some(b)),
+                    None => (Config { no_save: true, ..Config::default() }, None),
+                },
             }
         };
         c.tidy();
         (c, backup)
     }
-    /// Writes a temp file and swaps it in, so a crash mid-write never loses the list.
+    /// Writes a temp file, flushes it to disk and swaps it in, so a crash or power cut
+    /// mid-write never loses the list.
     pub fn save(&self, path: &Path) {
+        if self.no_save {
+            return;
+        }
         if let Some(dir) = path.parent() {
             let _ = std::fs::create_dir_all(dir);
         }
         let Ok(s) = serde_json::to_string_pretty(self) else { return };
         let tmp = path.with_extension("json.tmp");
-        if std::fs::write(&tmp, s).is_ok() {
+        let written = std::fs::File::create(&tmp).and_then(|mut f| {
+            use std::io::Write;
+            f.write_all(s.as_bytes())?;
+            f.sync_all()
+        });
+        if written.is_ok() {
             let _ = std::fs::rename(&tmp, path);
         }
     }
@@ -109,4 +130,75 @@ pub fn config_path(args: &[String]) -> PathBuf {
     }
     let base = std::env::var_os("APPDATA").map(PathBuf::from).unwrap_or_else(|| ".".into());
     base.join("OnionLauncher").join("apps.json")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let d = std::env::temp_dir().join(format!("onion-launcher-test-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    #[test]
+    fn missing_file_is_an_empty_list() {
+        let d = temp_dir("missing");
+        let (c, b) = Config::load(&d.join("apps.json"));
+        assert!(c.apps.is_empty() && b.is_none() && !c.no_save);
+    }
+
+    #[test]
+    fn saves_and_loads_back() {
+        let d = temp_dir("roundtrip");
+        let p = d.join("apps.json");
+        let mut c = Config::default();
+        c.apps.push(App::from_path(r"C:\Windows\notepad.exe"));
+        c.save(&p);
+        let (back, _) = Config::load(&p);
+        assert_eq!(back.apps.len(), 1);
+        assert_eq!(back.apps[0].name, "notepad");
+        assert!(!p.with_extension("json.tmp").exists());
+    }
+
+    #[test]
+    fn reads_a_file_with_a_byte_order_mark() {
+        let d = temp_dir("bom");
+        let p = d.join("apps.json");
+        std::fs::write(&p, "\u{feff}{\"apps\":[{\"name\":\"A\",\"path\":\"a.exe\"}]}").unwrap();
+        let (c, b) = Config::load(&p);
+        assert_eq!(c.apps.len(), 1);
+        assert!(b.is_none());
+    }
+
+    #[test]
+    fn broken_file_is_kept_aside() {
+        let d = temp_dir("broken");
+        let p = d.join("apps.json");
+        std::fs::write(&p, "{ not json").unwrap();
+        let (c, b) = Config::load(&p);
+        assert!(c.apps.is_empty() && !c.no_save);
+        let b = b.expect("kept aside");
+        assert_eq!(std::fs::read_to_string(b).unwrap(), "{ not json");
+        assert!(!p.exists());
+    }
+
+    #[test]
+    fn locked_file_is_never_overwritten() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let d = temp_dir("locked");
+        let p = d.join("apps.json");
+        let original = "{\"apps\":[{\"name\":\"Keep me\",\"path\":\"k.exe\"}]}";
+        std::fs::write(&p, original).unwrap();
+        // another program holding the file with no sharing, like a backup tool might
+        let lock = std::fs::OpenOptions::new().read(true).share_mode(0).open(&p).unwrap();
+        let (mut c, b) = Config::load(&p);
+        assert!(c.no_save && b.is_none());
+        drop(lock);
+        c.apps.push(App::from_path("new.exe"));
+        c.save(&p);
+        assert_eq!(std::fs::read_to_string(&p).unwrap(), original);
+    }
 }

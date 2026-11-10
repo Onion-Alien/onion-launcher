@@ -208,7 +208,7 @@ impl Gfx {
     pub fn rgba(&self) -> Vec<u8> {
         let n = (self.w * self.h * 4) as usize;
         let mut px = unsafe { std::slice::from_raw_parts(self.bits, n) }.to_vec();
-        for p in px.chunks_exact_mut(4) {
+        for p in px.as_chunks_mut::<4>().0 {
             let a = p[3] as u32;
             if a > 0 && a < 255 {
                 for c in &mut p[..3] {

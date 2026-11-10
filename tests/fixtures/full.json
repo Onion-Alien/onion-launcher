@@ -1,0 +1,53 @@
+{
+ "apps": [
+  {
+   "name": "Notepad",
+   "path": "C:\\Windows\\System32\\notepad.exe"
+  },
+  {
+   "name": "Marker",
+   "path": "C:\\Windows\\System32\\cmd.exe",
+   "args": "/c echo launched> \"%TEMP%\\onion-launcher-marker.txt\""
+  },
+  {
+   "name": "Calculator",
+   "path": "C:\\Windows\\System32\\calc.exe"
+  },
+  {
+   "name": "Paint",
+   "path": "C:\\Windows\\System32\\mspaint.exe"
+  },
+  {
+   "name": "Explorer",
+   "path": "C:\\Windows\\explorer.exe"
+  },
+  {
+   "name": "PowerShell",
+   "path": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+  },
+  {
+   "name": "Registry Editor",
+   "path": "C:\\Windows\\System32\\regedit.exe"
+  },
+  {
+   "name": "Task Manager",
+   "path": "C:\\Windows\\System32\\taskmgr.exe"
+  },
+  {
+   "name": "A Really Long Application Name That Keeps Going",
+   "path": "C:\\Windows\\System32\\notepad.exe"
+  },
+  {
+   "name": "Control Panel",
+   "path": "C:\\Windows\\System32\\control.exe"
+  },
+  {
+   "name": "Missing App",
+   "path": "C:\\nope\\gone.exe"
+  },
+  {
+   "name": "Character Map",
+   "path": "C:\\Windows\\System32\\charmap.exe"
+  }
+ ]
+}

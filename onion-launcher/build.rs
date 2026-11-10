@@ -100,7 +100,7 @@ fn ico_image(size: u32) -> Vec<u8> {
         }
     }
     let mask_row = (size.div_ceil(32) * 4) as usize;
-    v.extend(std::iter::repeat(0).take(mask_row * size as usize));
+    v.extend(std::iter::repeat_n(0, mask_row * size as usize));
     v
 }
 

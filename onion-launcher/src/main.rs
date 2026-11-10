@@ -776,7 +776,9 @@ unsafe fn create_window() -> (HWND, HICON) {
     let module = GetModuleHandleW(None).unwrap();
     // the app icon from the exe's resources, at the tray's size and full size
     let cx = GetSystemMetrics(SM_CXSMICON);
-    let icon = |w: i32, flags| LoadImageW(module, PCWSTR(1 as *const u16), IMAGE_ICON, w, w, flags).map(|h| HICON(h.0)).unwrap_or_default();
+    // MAKEINTRESOURCE(1): the icon group build.rs puts in as resource 1
+    let icon_id = PCWSTR(std::ptr::without_provenance(1));
+    let icon = |w: i32, flags| LoadImageW(module, icon_id, IMAGE_ICON, w, w, flags).map(|h| HICON(h.0)).unwrap_or_default();
     let tray_icon = icon(cx, LR_DEFAULTCOLOR);
     RegisterClassW(&WNDCLASSW {
         lpfnWndProc: Some(wndproc),
@@ -833,6 +835,7 @@ fn main() {
     let forced_scale = config::arg_value(&args, "--scale").and_then(|v| v.parse::<f32>().ok());
     let cfg_path = config::config_path(&args);
     let (cfg, broken) = Config::load(&cfg_path);
+    let no_save = cfg.no_save;
     let testing = test.is_some();
 
     unsafe {
@@ -901,8 +904,23 @@ fn main() {
             SetTimer(hwnd, TIMER_TEST, 500, None);
         } else {
             win::add_tray(hwnd, tray_icon);
-            if RegisterHotKey(hwnd, HOTKEY_ID, MOD_WIN | MOD_NOREPEAT, VK_OEM_3.0 as u32).is_err() {
-                MessageBoxW(hwnd, w!("Win+` is already used by another app. The tray icon still works."), w!("Onion Launcher"), MB_ICONWARNING);
+            // the key left of 1 on this keyboard (` on US layouts, ^ on German, ' on UK...)
+            let key = match MapVirtualKeyW(0x29, MAPVK_VSC_TO_VK) {
+                0 => VK_OEM_3.0 as u32,
+                vk => vk,
+            };
+            if RegisterHotKey(hwnd, HOTKEY_ID, MOD_WIN | MOD_NOREPEAT, key).is_err() {
+                MessageBoxW(hwnd, w!("Win + the key left of 1 is already used by another app. The tray icon still works."), w!("Onion Launcher"), MB_ICONWARNING);
+            }
+            if no_save {
+                let text = format!(
+                    "Your list of apps couldn't be read (another program may have it open), so Onion Launcher started with an empty one.
+
+Your list was left as it is, and nothing will be saved until Onion Launcher is restarted:
+{}",
+                    st().cfg_path.display()
+                );
+                MessageBoxW(hwnd, &HSTRING::from(text), w!("Onion Launcher"), MB_ICONWARNING);
             }
             if let Some(b) = &broken {
                 let text = format!(
