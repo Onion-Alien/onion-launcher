@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 (2026-11-10)
 
 - Fixed: if another program had `apps.json` open when Onion Launcher started, it started
   with an empty list and the next change wrote over the real one. Now it leaves the file
