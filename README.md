@@ -50,6 +50,16 @@ The exe isn't code-signed yet, so Windows may show a "Windows protected your PC"
 first time: click **More info**, then **Run anyway**. Each release lists the exe's SHA-256,
 so you can check the download with `Get-FileHash OnionLauncher.exe`.
 
+Onion Launcher starts as soon as it's installed. If you untick **Start Onion Launcher when
+Windows starts**, start it yourself after a restart: search the Start menu for **Onion
+Launcher**. **Uninstall Onion Launcher** is right there too (or use Settings > Apps >
+Installed apps).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/start-menu-dark.png">
+  <img src="docs/images/start-menu-light.png" width="560" alt="Windows Start menu search for 'onion launcher': Onion Launcher as the best match, and Uninstall Onion Launcher under Apps">
+</picture>
+
 Running a newer `OnionLauncher.exe` updates it, and your list of apps stays.
 
 ## Your data
