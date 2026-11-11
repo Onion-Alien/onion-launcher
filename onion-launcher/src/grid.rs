@@ -67,7 +67,8 @@ pub struct Section {
     pub cat: Option<usize>,
     /// heading top (or tiles top for the top section)
     pub top: f32,
-    pub tiles_top: f32,
+    /// the top of each row of tiles (rows are as tall as their names need)
+    pub rows: Vec<f32>,
     /// apps in it, not counting the one being dragged
     pub others: usize,
 }
@@ -116,14 +117,64 @@ fn layout_with(s: &State, drag: Option<&TileDrag>) -> Layout {
             lay.heads.push((c, Rect::new(PAD, y, WIDTH - 2.0 * PAD, HEAD_H)));
             y += HEAD_H;
         }
-        for (i, it) in items.iter().enumerate() {
-            lay.items.push((*it, Rect::new(PAD + (i % COLS) as f32 * TILE_W, y + (i / COLS) as f32 * TILE_H, TILE_W, TILE_H)));
+        let mut rows = vec![];
+        for row in items.chunks(COLS) {
+            // as tall as the row's longest name needs: one line or two
+            let lines = row.iter().map(|it| item_lines(s, *it, skip)).max().unwrap_or(1);
+            let h = row_height(lines);
+            rows.push(y);
+            for (col, it) in row.iter().enumerate() {
+                lay.items.push((*it, Rect::new(PAD + col as f32 * TILE_W, y, TILE_W, h)));
+            }
+            y += h;
         }
-        lay.sections.push(Section { cat, top, tiles_top: y, others });
-        y += items.len().div_ceil(COLS).max(1) as f32 * TILE_H;
+        if items.is_empty() {
+            rows.push(y);
+            y += row_height(1);
+        }
+        lay.sections.push(Section { cat, top, rows, others });
     }
     lay.h = y + PAD;
     lay
+}
+
+/// name_lines while painting, when State is split into its parts
+fn name_lines_in(names: &mut HashMap<String, IDWriteTextLayout>, g: &Gfx, name: &str) -> usize {
+    name_layout(names, g, name, TILE_W - 8.0).map_or(1, |l| {
+        let mut m = DWRITE_TEXT_METRICS::default();
+        unsafe {
+            let _ = l.GetMetrics(&mut m);
+        }
+        (m.lineCount as usize).clamp(1, 2)
+    })
+}
+
+/// How many lines a tile's name takes (1 or 2; longer names are cut to 2 with "…").
+fn name_lines(s: &State, name: &str) -> usize {
+    let lines = |l: &IDWriteTextLayout| {
+        let mut m = DWRITE_TEXT_METRICS::default();
+        unsafe { l.GetMetrics(&mut m).ok().map(|_| m.lineCount as usize) }
+    };
+    let n = match s.names.get(name) {
+        Some(l) => lines(l),
+        None => s.gfx.layout(name, &s.gfx.f.name, TILE_W - 8.0, 1000.0).and_then(|l| lines(&l)),
+    };
+    n.unwrap_or(1).clamp(1, 2)
+}
+
+fn item_lines(s: &State, it: Item, dragged: Option<usize>) -> usize {
+    match it {
+        Item::App(i) => name_lines(s, &s.cfg.apps[i].name),
+        // the drop spot holds the dragged app
+        Item::Gap => dragged.map_or(1, |i| name_lines(s, &s.cfg.apps[i].name)),
+        Item::Add | Item::Empty => 1,
+    }
+}
+
+/// A row of tiles: the icon and name, with the same space under the name as above the icon.
+pub fn row_height(lines: usize) -> f32 {
+    // name at 54, its lines, 10 under it (as above the icon), 2 between cards
+    54.0 + lines as f32 * LINE_H + 12.0
 }
 
 /// The box as it looks right now (with the drag gap while dragging).
@@ -159,7 +210,7 @@ fn drop_target(lay: &Layout, x: f32, y: f32) -> Option<Place> {
     }
     let sec = lay.sections.iter().rev().find(|s| y >= s.top).unwrap_or(&lay.sections[0]);
     let col = (((x - PAD) / TILE_W).floor().max(0.0) as usize).min(COLS - 1);
-    let row = ((y - sec.tiles_top) / TILE_H).floor().max(0.0) as usize;
+    let row = sec.rows.iter().rposition(|&top| y >= top).unwrap_or(0);
     Some((sec.cat, (row * COLS + col).min(sec.others)))
 }
 
@@ -548,7 +599,7 @@ pub fn paint_grid(s: &mut State, th: &Theme) {
 
     // the dragged tile, lifted above the rest
     if let Some((i, at, grab)) = drag {
-        let r = Rect::new(at.0 - grab.0, at.1 - grab.1, TILE_W, TILE_H);
+        let r = Rect::new(at.0 - grab.0, at.1 - grab.1, TILE_W, row_height(name_lines_in(names, g, &cfg.apps[i].name)));
         let card = card_rect(r, name_layout(names, g, &cfg.apps[i].name, r.w - 8.0));
         g.fill(card.inset(-1.0), 9.0, hex(0x00000022));
         g.fill(card, 8.0, th.surface);

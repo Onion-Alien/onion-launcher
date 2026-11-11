@@ -63,7 +63,9 @@ const TIMER_TEST: usize = 3;
 const COLS: usize = 4;
 const PAD: f32 = 12.0;
 const TILE_W: f32 = 84.0;
-const TILE_H: f32 = 92.0;
+/// A row of tiles whose names take two lines (grid::row_height); one line is LINE_H shorter.
+const TILE_H: f32 = 98.0;
+const LINE_H: f32 = 16.0;
 const GRID_ICON: f32 = 36.0;
 const FIELD_H: f32 = 40.0;
 const WIDTH: f32 = PAD * 2.0 + COLS as f32 * TILE_W;

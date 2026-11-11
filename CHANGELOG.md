@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.5 (2026-11-11)
+
+- Rows of tiles are only as tall as their names: a row where every name fits on one line
+  no longer leaves an empty gap under it, and a row with a two-line name gets the same
+  space under that second line as above the icons.
+
 ## 0.2.4 (2026-11-11)
 
 - The installer's last page showed Inno Setup's own picture behind the text when Windows
