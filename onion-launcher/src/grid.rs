@@ -9,8 +9,8 @@ use crate::*;
 pub const HEAD_H: f32 = 30.0;
 /// Height of the "name a category" screen.
 pub const NAME_H: f32 = PAD + 22.0 + 6.0 + FIELD_H + 10.0 + 16.0 + PAD;
-/// glow key of the "+" tile (app glows are keyed by App::key)
-pub const ADD_KEY: &str = "\u{1}+";
+/// glow key of the "+" tile (app glows are keyed by App::key, which is never 0)
+pub const ADD_KEY: u32 = 0;
 
 /// Where a dragged app would land: (category or None for the top section, slot).
 pub type Place = (Option<usize>, usize);
@@ -540,7 +540,7 @@ pub fn paint_grid(s: &mut State, th: &Theme) {
                 shown_apps += 1;
             }
             Item::Add => {
-                let gl = glow.get(ADD_KEY).copied().unwrap_or(0.0);
+                let gl = glow.get(&ADD_KEY).copied().unwrap_or(0.0);
                 let down = pressed == Some(Hit::AddTile);
                 let inner = r.inset(2.0);
                 if gl > 0.0 {

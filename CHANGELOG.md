@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.7 (2026-11-11)
+
+Fixes from a read-through of all the code. Nothing looks or works differently otherwise.
+
+- Picking a program with **Browse files** no longer leaves that folder "in use" until
+  Onion Launcher is closed (it couldn't be renamed or deleted, and a USB stick couldn't
+  be ejected).
+- A list with the very same app in it twice (only possible by editing `apps.json` by
+  hand) drew the two tiles on top of each other. Each copy now gets its own tile.
+- Pasting a huge text into the search box or a category name can no longer freeze the
+  box: it takes up to 256 characters.
+- An app whose icon can't be loaded at a new screen scale keeps the icon it had, instead
+  of falling back to a letter.
+- The animation timer always stops when the box is hidden, so a hidden Onion Launcher
+  does no work at all.
+
 ## 0.2.6 (2026-11-11)
 
 - A more compact installer: the window fits its content, with the page right under the

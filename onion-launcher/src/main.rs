@@ -117,8 +117,10 @@ impl Icons {
                 worker::push(worker::Job::Icon(src.to_string(), px), false);
             }
         }
+        // the exact size, else the biggest there is (never a size that failed to load)
         let v = self.have.get(src)?;
-        v.iter().find(|(p, _)| *p == px).or_else(|| v.iter().max_by_key(|(p, _)| *p)).and_then(|(_, b)| b.as_ref())
+        let loaded = || v.iter().filter_map(|(p, b)| Some((*p, b.as_ref()?)));
+        loaded().find(|(p, _)| *p == px).or_else(|| loaded().max_by_key(|(p, _)| *p)).map(|(_, b)| b)
     }
 
     fn arrived(&mut self, g: &Gfx, src: String, px: u32, pic: Option<shell::Pixels>) {
@@ -153,13 +155,13 @@ struct State {
     /// an app tile being dragged
     tile_drag: Option<grid::TileDrag>,
     /// where each tile is drawn (by App::key); eases toward its slot
-    pos: HashMap<String, (f32, f32)>,
+    pos: HashMap<u32, (f32, f32)>,
     naming: Option<grid::Naming>,
     mouse: Option<(f32, f32)>,
     hover: Option<Hit>,
     pressed: Option<Hit>,
     /// hover glow per tile (by App::key, or grid::ADD_KEY), 0..1
-    glow: HashMap<String, f32>,
+    glow: HashMap<u32, f32>,
     shown_at: Instant,
     last_tick: Instant,
     animating: bool,
@@ -415,21 +417,29 @@ fn kick() {
 /// One animation step: the opening fade, hover glows, tiles sliding, scrolling.
 fn tick() {
     let s = st();
+    // nothing to animate while the box is hidden (showing it starts the timer again)
+    if !visible() {
+        s.animating = false;
+        unsafe {
+            let _ = KillTimer(s.hwnd, TIMER_ANIM);
+        }
+        return;
+    }
     let now = Instant::now();
     let dt = now.duration_since(s.last_tick).as_secs_f32().min(0.05);
     s.last_tick = now;
     let mut busy = now.duration_since(s.shown_at).as_millis() < 260;
     let hovered = match s.hover {
         Some(Hit::Tile(i)) => s.cfg.apps.get(i).map(App::key),
-        Some(Hit::AddTile) => Some(grid::ADD_KEY.to_string()),
+        Some(Hit::AddTile) => Some(grid::ADD_KEY),
         _ => None,
     };
-    if let Some(h) = &hovered {
-        s.glow.entry(h.clone()).or_insert(0.0);
+    if let Some(h) = hovered {
+        s.glow.entry(h).or_insert(0.0);
     }
     let step = dt / 0.09;
     s.glow.retain(|k, g| {
-        let target = if hovered.as_ref() == Some(k) { 1.0 } else { 0.0 };
+        let target = if hovered == Some(*k) { 1.0 } else { 0.0 };
         *g = if *g < target { (*g + step).min(target) } else { (*g - step).max(target) };
         busy |= *g != target;
         *g > 0.0 || target > 0.0
@@ -860,7 +870,9 @@ fn main() {
         Some("light") => false,
         _ => shell::system_dark(),
     };
-    let forced_scale = config::arg_value(&args, "--scale").and_then(|v| v.parse::<f32>().ok());
+    // (kept to sizes a screen can have: 0 would be a window of no size, 1000 one that
+    // needs gigabytes to draw)
+    let forced_scale = config::arg_value(&args, "--scale").and_then(|v| v.parse::<f32>().ok()).filter(|v| v.is_finite()).map(|v| v.clamp(0.5, 5.0));
     let cfg_path = config::config_path(&args);
     let (cfg, broken) = Config::load(&cfg_path);
     let no_save = cfg.no_save;

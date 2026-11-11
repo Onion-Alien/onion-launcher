@@ -80,9 +80,9 @@ pub fn installed_apps() -> Vec<App> {
                 // a game-launcher link (uplay://, steam://...): open the link itself,
                 // take the picture from the .url file's IconFile
                 let icon = link_icons.get(&id.to_lowercase()).cloned().unwrap_or_default();
-                out.push(App { name, path: id, args: String::new(), icon, category: String::new() });
+                out.push(App::new(name, id, icon));
             } else {
-                out.push(App { name, path: format!(r"shell:AppsFolder\{id}"), args: String::new(), icon: String::new(), category: String::new() });
+                out.push(App::new(name, format!(r"shell:AppsFolder\{id}"), String::new()));
             }
         }
     }
@@ -205,7 +205,10 @@ unsafe fn dib(w: i32, h: i32) -> Option<(HDC, HBITMAP, HGDIOBJ, *mut u8)> {
     let dc = CreateCompatibleDC(None);
     let info = bmi(w, h);
     let mut bits: *mut c_void = std::ptr::null_mut();
-    let bmp = CreateDIBSection(dc, &info, DIB_RGB_COLORS, &mut bits, None, 0).ok()?;
+    let Ok(bmp) = CreateDIBSection(dc, &info, DIB_RGB_COLORS, &mut bits, None, 0) else {
+        let _ = DeleteDC(dc);
+        return None;
+    };
     let old = SelectObject(dc, bmp);
     Some((dc, bmp, old, bits as *mut u8))
 }
@@ -306,7 +309,10 @@ pub fn pick_files(owner: HWND) -> Vec<String> {
         lpstrFile: PWSTR(buf.as_mut_ptr()),
         nMaxFile: buf.len() as u32,
         lpstrTitle: w!("Add apps"),
-        Flags: OFN_EXPLORER | OFN_ALLOWMULTISELECT | OFN_FILEMUSTEXIST | OFN_NODEREFERENCELINKS | OFN_HIDEREADONLY,
+        // NOCHANGEDIR: without it the folder picked from stays this app's working folder,
+        // so it is "in use" (can't be renamed or deleted, a USB stick can't be ejected)
+        // for as long as Onion Launcher runs
+        Flags: OFN_EXPLORER | OFN_ALLOWMULTISELECT | OFN_FILEMUSTEXIST | OFN_NODEREFERENCELINKS | OFN_HIDEREADONLY | OFN_NOCHANGEDIR,
         ..Default::default()
     };
     unsafe {
@@ -323,9 +329,11 @@ pub fn pick_files(owner: HWND) -> Vec<String> {
     }
 }
 
-/// The clipboard's text, if any.
+/// The start of the clipboard's text, if it holds any. The text box takes one short
+/// line, so a whole copied file is never read in.
 pub fn clipboard_text(owner: HWND) -> Option<String> {
     const CF_UNICODETEXT: u32 = 13;
+    const MAX_UNITS: usize = 4096;
     unsafe {
         OpenClipboard(owner).ok()?;
         let mut out = None;
@@ -334,7 +342,7 @@ pub fn clipboard_text(owner: HWND) -> Option<String> {
             let p = GlobalLock(g) as *const u16;
             if !p.is_null() {
                 // up to the first 0, never past the end of the block
-                let max = GlobalSize(g) / 2;
+                let max = (GlobalSize(g) / 2).min(MAX_UNITS);
                 let n = (0..max).find(|&i| *p.add(i) == 0).unwrap_or(max);
                 out = Some(String::from_utf16_lossy(std::slice::from_raw_parts(p, n)));
                 let _ = GlobalUnlock(g);

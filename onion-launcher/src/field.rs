@@ -40,9 +40,19 @@ fn next_char(q: &str, at: usize) -> usize {
     q[at..].chars().next().map(|c| at + c.len_utf8()).unwrap_or(at)
 }
 
+/// The most characters the box holds: far more than any name, and few enough that a
+/// pasted page of text can't slow the search or the drawing down.
+const MAX_CHARS: usize = 256;
+
+/// What typing or pasting `t` adds when there is room for `room` more characters: its
+/// first line, without control characters.
+fn typed(t: &str, room: usize) -> String {
+    t.lines().next().unwrap_or("").chars().filter(|c| !c.is_control()).take(room).collect()
+}
+
 /// Inserts the first line of `t` at the caret (control characters dropped).
 fn type_text(t: &str) {
-    let t: String = t.lines().next().unwrap_or("").chars().filter(|c| !c.is_control()).collect();
+    let t = typed(t, MAX_CHARS.saturating_sub(st().query.chars().count()));
     if !t.is_empty() {
         edit(|q, c| {
             q.insert_str(*c, &t);
@@ -143,5 +153,24 @@ pub fn draw(g: &Gfx, th: &Theme, f: Rect, text: &str, caret: usize, caret_on: bo
             caret_at(tx + cx - shift);
         }
         g.unclip();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn typing_takes_one_line_without_control_characters() {
+        assert_eq!(typed("pa\tint\r\nsecond line", 100), "paint");
+        assert_eq!(typed("", 100), "");
+    }
+
+    #[test]
+    fn typing_stops_when_the_box_is_full() {
+        assert_eq!(typed(&"x".repeat(10_000), 3), "xxx");
+        assert_eq!(typed("more", 0), "");
+        // whole characters, never half of one
+        assert_eq!(typed("\u{1F9C5}\u{1F9C5}", 1), "\u{1F9C5}");
     }
 }

@@ -2,6 +2,13 @@
 
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU32, Ordering};
+
+/// A number no other app entry has had this run (see `App::id`). Never 0.
+pub fn next_id() -> u32 {
+    static NEXT: AtomicU32 = AtomicU32::new(1);
+    NEXT.fetch_add(1, Ordering::Relaxed)
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct App {
@@ -15,16 +22,23 @@ pub struct App {
     /// the category section it sits in; empty = the top section
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub category: String,
+    /// Tells this entry from every other one while the app runs, even an exact copy of
+    /// it. Made fresh on every start, never saved.
+    #[serde(skip, default = "next_id")]
+    pub id: u32,
 }
 
 impl App {
+    pub fn new(name: String, path: String, icon: String) -> App {
+        App { name, path, args: String::new(), icon, category: String::new(), id: next_id() }
+    }
     pub fn from_path(p: &str) -> App {
         let name = Path::new(p).file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| p.to_string());
-        App { name, path: p.to_string(), args: String::new(), icon: String::new(), category: String::new() }
+        App::new(name, p.to_string(), String::new())
     }
-    /// Tells two list entries apart even when they open the same program.
-    pub fn key(&self) -> String {
-        format!("{}\u{0}{}\u{0}{}", self.path, self.args, self.name)
+    /// What a tile's hover glow and on-screen position are filed under.
+    pub fn key(&self) -> u32 {
+        self.id
     }
     /// What to ask Windows for this app's icon.
     pub fn icon_source(&self) -> &str {
@@ -171,6 +185,19 @@ mod tests {
         let (c, b) = Config::load(&p);
         assert_eq!(c.apps.len(), 1);
         assert!(b.is_none());
+    }
+
+    #[test]
+    fn exact_copies_are_kept_and_told_apart() {
+        let d = temp_dir("copies");
+        let p = d.join("apps.json");
+        std::fs::write(&p, r#"{"apps":[{"name":"A","path":"a.exe"},{"name":"A","path":"a.exe"}]}"#).unwrap();
+        let (c, _) = Config::load(&p);
+        assert_eq!(c.apps.len(), 2);
+        assert_ne!(c.apps[0].key(), c.apps[1].key());
+        // the key is for this run only: it never reaches the file
+        c.save(&p);
+        assert!(!std::fs::read_to_string(&p).unwrap().contains("\"id\""));
     }
 
     #[test]
