@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.6 (2026-11-11)
+
+- A more compact installer: the window fits its content, with the page right under the
+  heading and no empty band above the buttons. On the last page, "Open Onion Launcher
+  now" sits straight under the text.
+
 ## 0.2.5 (2026-11-11)
 
 - Rows of tiles are only as tall as their names: a row where every name fits on one line

@@ -135,6 +135,7 @@ const
 var
   StartupChecked: Boolean;
   TasksBox, DoneBox: TBitmapImage;
+  DoneText: TNewStaticText;   // the last page's text, in place of Inno's FinishedLabel
 
 // The launcher picture for this screen's scale and Setup's light or dark look, made to
 // size by make_installer_art.py so it's never stretched
@@ -164,6 +165,8 @@ begin
 end;
 
 procedure InitializeWizard;
+var
+  Spare: Integer;
 begin
   // and in case Inno draws its own pictures anyway: hidden
   WizardForm.WizardBitmapImage.Visible := False;
@@ -171,6 +174,24 @@ begin
   WizardForm.WizardSmallBitmapImage.Visible := False;
   TasksBox := AddBox(WizardForm.SelectTasksPage);
   DoneBox := AddBox(WizardForm.FinishedPage);
+  // Inno's FinishedLabel reports a box much taller than its text, so nothing can be
+  // placed right under it: this label, with the same words, measures true
+  DoneText := TNewStaticText.Create(WizardForm);
+  DoneText.Parent := WizardForm.FinishedPage;
+  DoneText.AutoSize := False;
+  DoneText.WordWrap := True;
+  DoneText.ShowAccelChar := False;
+  DoneText.Caption := SetupMessage(msgFinishedLabel);
+  // Inno puts the pages' content well below the heading: bring it up to a normal gap (the
+  // heading's panel too, or it would cover the top of the page)
+  WizardForm.MainPanel.Height := WizardForm.MainPanel.Height - ScaleY(12);
+  WizardForm.InnerNotebook.Top := WizardForm.InnerNotebook.Top - ScaleY(20);
+  WizardForm.InnerNotebook.Height := WizardForm.InnerNotebook.Height + ScaleY(20);
+  // and its window is taller than these two short pages need: shorten it to fit the
+  // picture, so there's no empty band above the buttons
+  Spare := WizardForm.SelectTasksPage.ClientHeight - TasksBox.Height - ScaleY(8);
+  if Spare > 0 then
+    WizardForm.ClientHeight := WizardForm.ClientHeight - Spare;
 end;
 
 procedure InitializeUninstallProgressForm;
@@ -178,22 +199,28 @@ begin
   UninstallProgressForm.WizardSmallBitmapImage.Visible := False;
 end;
 
-// Text on the left, the picture on the right
+// Text on the left, the picture on the right: side by side as one block, the text centred
+// against the picture
 procedure LayOut(CurPageID: Integer);
 var
-  Gap, Left, Right: Integer;
+  Gap, Left, Right, TextH, BlockH: Integer;
 begin
   Gap := ScaleX(24);
   if CurPageID = wpSelectTasks then
   begin
     TasksBox.Left := WizardForm.SelectTasksPage.ClientWidth - TasksBox.Width;
-    TasksBox.Top := WizardForm.SelectTasksLabel.Top;   // level with the text
     Right := TasksBox.Left - Gap;
     WizardForm.SelectTasksLabel.Width := Right - WizardForm.SelectTasksLabel.Left;
     WizardForm.SelectTasksLabel.AdjustHeight;
-    WizardForm.TasksList.Top := WizardForm.SelectTasksLabel.Top + WizardForm.SelectTasksLabel.Height + ScaleY(16);
     WizardForm.TasksList.Width := Right - WizardForm.TasksList.Left;
-    WizardForm.TasksList.Height := ScaleY(40);
+    WizardForm.TasksList.Height := ScaleY(24);   // its one box
+    TextH := WizardForm.SelectTasksLabel.Height + ScaleY(16) + WizardForm.TasksList.Height;
+    BlockH := TasksBox.Height;
+    if TextH > BlockH then BlockH := TextH;
+    // right under the heading (InitializeWizard moved the page up and shortened the window)
+    TasksBox.Top := (BlockH - TasksBox.Height) div 2;
+    WizardForm.SelectTasksLabel.Top := (BlockH - TextH) div 2;
+    WizardForm.TasksList.Top := WizardForm.SelectTasksLabel.Top + WizardForm.SelectTasksLabel.Height + ScaleY(16);
   end
   else if CurPageID = wpFinished then
   begin
@@ -203,17 +230,20 @@ begin
     // Inno leaves room on the left for the side panel this setup doesn't have
     Left := ScaleX(40);
     WizardForm.FinishedHeadingLabel.Left := Left;
-    WizardForm.FinishedHeadingLabel.Top := DoneBox.Top - ScaleY(6);   // its letters, not its box, level with the picture
     WizardForm.FinishedHeadingLabel.Width := Right - Left;
-    // the heading level with the picture's top, the box level with its bottom
+    WizardForm.FinishedHeadingLabel.Height := ScaleY(30);   // one line (Inno's box is much taller)
+    WizardForm.FinishedLabel.Visible := False;
+    DoneText.Left := Left;
+    DoneText.Width := Right - Left;
+    DoneText.AdjustHeight;
     WizardForm.RunList.Left := Left;
     WizardForm.RunList.Width := Right - Left;
     WizardForm.RunList.Height := ScaleY(24);   // its one box
-    WizardForm.RunList.Top := DoneBox.Top + DoneBox.Height - WizardForm.RunList.Height;
-    WizardForm.FinishedLabel.Left := Left;
-    WizardForm.FinishedLabel.Top := DoneBox.Top + ScaleY(44);
-    WizardForm.FinishedLabel.Width := Right - Left;
-    WizardForm.FinishedLabel.Height := WizardForm.RunList.Top - ScaleY(12) - WizardForm.FinishedLabel.Top;
+    TextH := WizardForm.FinishedHeadingLabel.Height + ScaleY(12) + DoneText.Height +
+      ScaleY(20) + WizardForm.RunList.Height;
+    WizardForm.FinishedHeadingLabel.Top := DoneBox.Top + (DoneBox.Height - TextH) div 2;
+    DoneText.Top := WizardForm.FinishedHeadingLabel.Top + WizardForm.FinishedHeadingLabel.Height + ScaleY(12);
+    WizardForm.RunList.Top := DoneText.Top + DoneText.Height + ScaleY(20);
     // Finish where Cancel was (it's hidden here), not stranded in the middle
     WizardForm.NextButton.Left := WizardForm.CancelButton.Left;
   end;
