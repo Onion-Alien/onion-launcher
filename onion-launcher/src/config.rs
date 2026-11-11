@@ -46,12 +46,23 @@ impl App {
     }
 }
 
+/// A key combination for RegisterHotKey: `mods` is MOD_ALT | MOD_CONTROL | MOD_SHIFT |
+/// MOD_WIN bits, `key` a virtual-key code.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+pub struct Hotkey {
+    pub mods: u32,
+    pub key: u32,
+}
+
 #[derive(Serialize, Deserialize, Default)]
 pub struct Config {
     pub apps: Vec<App>,
     /// category order, top to bottom
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub categories: Vec<String>,
+    /// the hotkey picked in the tray menu; none = Win + the key left of 1
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hotkey: Option<Hotkey>,
     /// The saved file exists but couldn't be read or kept aside (another program had it
     /// open, say): never write over it this run.
     #[serde(skip)]
@@ -175,6 +186,19 @@ mod tests {
         assert_eq!(back.apps.len(), 1);
         assert_eq!(back.apps[0].name, "notepad");
         assert!(!p.with_extension("json.tmp").exists());
+    }
+
+    #[test]
+    fn hotkey_is_saved_only_when_picked() {
+        let d = temp_dir("hotkey");
+        let p = d.join("apps.json");
+        let mut c = Config::default();
+        c.save(&p);
+        assert!(!std::fs::read_to_string(&p).unwrap().contains("hotkey"));
+        c.hotkey = Some(Hotkey { mods: 2 | 4, key: 0x20 });
+        c.save(&p);
+        let (back, _) = Config::load(&p);
+        assert_eq!(back.hotkey, Some(Hotkey { mods: 6, key: 0x20 }));
     }
 
     #[test]

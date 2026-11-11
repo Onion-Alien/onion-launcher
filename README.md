@@ -19,6 +19,8 @@ Version **0.2.8** · [VirusTotal: 71 of 71 clean](https://www.virustotal.com/gui
 - **Open the box:** press **Win + `** (the key left of 1, whatever it shows on your
   keyboard), or click its icon in the tray.
   Press **Esc** or click anywhere else to close it.
+- **Change the hotkey:** right-click the tray icon, pick **Change hotkey...**, and press the
+  new keys (with Ctrl, Alt or Win, like **Ctrl + Space**). **Esc** keeps the old one.
 - **Open an app:** click it, or press its number (**1** to **9**, then **0**).
 - **Add apps:** click the **+** tile (or press **+**) to search every app on the PC, then click
   one or press **Enter**. **Browse files** at the bottom picks any program or shortcut.
@@ -35,7 +37,7 @@ Version **0.2.8** · [VirusTotal: 71 of 71 clean](https://www.virustotal.com/gui
   <img src="docs/images/release-to-remove.png" alt="An app held outside the box: the box says Release to remove" width="49%">
 </p>
 
-It follows Windows' light or dark mode by itself. If another app already uses that shortcut,
+It follows Windows' light or dark mode by itself. If another app already uses the hotkey,
 Onion Launcher says so when it starts, and the tray icon still works.
 
 ## Install
@@ -103,7 +105,7 @@ copy tests\fixtures\cats.json %TEMP%\cats.json
 powershell -File tools\run_hidden.ps1 -CommandLine "target\release\OnionLauncher.exe --selftest %TEMP% --tag cats --theme dark --config %TEMP%\cats.json"
 ```
 
-Tags: `full`, `dark`, `empty`, `big`, `cats` (categories and dragging), `frame` and `readme`
+Tags: `full`, `dark`, `empty`, `big`, `cats` (categories and dragging), `hotkey` (the Change hotkey screen), `frame` and `readme`
 (the pictures on this page). `--config` points it at a test copy of the app list, so your
 real list is never touched; the test may change that copy, so always use a copy.
 Made-up lists live in `tests/fixtures/`: `full.json` and `cats.json` use only apps that

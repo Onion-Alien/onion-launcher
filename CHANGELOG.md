@@ -1,5 +1,12 @@
 # Changelog
 
+## Not released yet
+
+- **Change the hotkey:** right-click the tray icon and pick **Change hotkey...**, then press
+  the new keys (with Ctrl, Alt or Win, like Ctrl + Space). It's saved with your apps, and
+  the tray menu and tooltip show the hotkey you picked. A shortcut another app already
+  uses is refused with a message, and **Esc** keeps the old one.
+
 ## 0.2.8 (2026-11-11)
 
 - The installer now scans clean on VirusTotal. A few virus scanners guessed "malware" from

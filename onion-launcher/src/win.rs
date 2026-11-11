@@ -5,7 +5,8 @@ use crate::*;
 
 const TRAY_ID: u32 = 1;
 
-pub fn add_tray(hwnd: HWND, icon: HICON) {
+/// The tray icon, its tooltip naming the hotkey: "Onion Launcher (Win+`)".
+pub fn add_tray(hwnd: HWND, icon: HICON, keys: &str) {
     let mut nid = NOTIFYICONDATAW {
         cbSize: std::mem::size_of::<NOTIFYICONDATAW>() as u32,
         hWnd: hwnd,
@@ -15,11 +16,26 @@ pub fn add_tray(hwnd: HWND, icon: HICON) {
         hIcon: icon,
         ..Default::default()
     };
-    for (d, c) in nid.szTip.iter_mut().zip("Onion Launcher (Win+`)".encode_utf16()) {
-        *d = c;
-    }
+    set_tip(&mut nid, keys);
     unsafe {
         let _ = Shell_NotifyIconW(NIM_ADD, &nid);
+    }
+}
+
+/// A new hotkey: the tray tooltip says so.
+pub fn set_tray_tip(hwnd: HWND, keys: &str) {
+    let mut nid = NOTIFYICONDATAW { cbSize: std::mem::size_of::<NOTIFYICONDATAW>() as u32, hWnd: hwnd, uID: TRAY_ID, uFlags: NIF_TIP, ..Default::default() };
+    set_tip(&mut nid, keys);
+    unsafe {
+        let _ = Shell_NotifyIconW(NIM_MODIFY, &nid);
+    }
+}
+
+fn set_tip(nid: &mut NOTIFYICONDATAW, keys: &str) {
+    let text = format!("Onion Launcher ({keys})");
+    // at most 127 characters, then the closing 0
+    for (d, c) in nid.szTip.iter_mut().take(127).zip(text.encode_utf16()) {
+        *d = c;
     }
 }
 

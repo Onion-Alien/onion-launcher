@@ -16,6 +16,7 @@ mod config;
 mod field;
 mod gfx;
 mod grid;
+mod hotkey;
 mod selftest;
 mod shell;
 mod theme;
@@ -57,6 +58,7 @@ const HOTKEY_ID: i32 = 1;
 const TIMER_ANIM: usize = 1;
 const TIMER_CARET: usize = 2;
 const TIMER_TEST: usize = 3;
+const TIMER_SAVED: usize = 4;
 
 // ---------- layout, in DIPs (1/96 inch) ----------
 
@@ -78,6 +80,8 @@ enum Mode {
     Add,
     /// naming a new category, or renaming one
     Name,
+    /// "Change hotkey": waiting for the new keys
+    Hotkey,
 }
 
 /// What is under the mouse.
@@ -181,6 +185,9 @@ struct State {
     taskbar_created: u32,
     /// our own menu/dialog is up: don't hide on focus loss
     busy: bool,
+    /// the hotkey is registered with Windows right now
+    hotkey_on: bool,
+    capture: hotkey::Capture,
     test: Option<selftest::Test>,
 }
 
@@ -212,6 +219,7 @@ fn size_dip(s: &State) -> (f32, f32) {
         Mode::Grid => (WIDTH, grid::layout(s).h),
         Mode::Add => (WIDTH, add::ADD_H),
         Mode::Name => (WIDTH, grid::NAME_H),
+        Mode::Hotkey => (WIDTH, hotkey::PANEL_H),
     }
 }
 
@@ -219,7 +227,7 @@ fn hit(s: &State, x: f32, y: f32) -> Option<Hit> {
     match s.mode {
         Mode::Grid => grid::hit(s, x, y),
         Mode::Add => add::hit(s, x, y),
-        Mode::Name => None,
+        Mode::Name | Mode::Hotkey => None,
     }
 }
 
@@ -370,6 +378,9 @@ fn set_mode(m: Mode) {
     if s.mode == m {
         return;
     }
+    if s.mode == Mode::Hotkey {
+        hotkey::left();
+    }
     s.mode = m;
     s.hover = None;
     s.pressed = None;
@@ -386,6 +397,7 @@ fn set_mode(m: Mode) {
             log(&format!("+ opened, app list ready={}", s.installed_ready));
         }
         Mode::Name => field::caret_reset(),
+        Mode::Hotkey => hotkey::entered(),
         Mode::Grid => unsafe {
             let _ = KillTimer(s.hwnd, TIMER_CARET);
         },
@@ -447,7 +459,7 @@ fn tick() {
     busy |= match s.mode {
         Mode::Grid => grid::animate(s, dt),
         Mode::Add => add::animate(s, dt),
-        Mode::Name => false,
+        Mode::Name | Mode::Hotkey => false,
     };
     invalidate();
     if !busy {
@@ -475,6 +487,7 @@ fn render() {
         Mode::Grid => grid::paint_grid(s, th),
         Mode::Add => add::paint(s, th),
         Mode::Name => grid::paint_name(s, th),
+        Mode::Hotkey => hotkey::paint(s, th),
     }
     s.gfx.end();
 }
@@ -600,6 +613,7 @@ fn on_key(vk: VIRTUAL_KEY) {
             add::on_key(vk);
         }
         Mode::Name => grid::on_name_key(vk),
+        Mode::Hotkey => hotkey::on_key(vk, true),
         // Esc while dragging a tile cancels the drag (via WM_CAPTURECHANGED)
         Mode::Grid if s.tile_drag.as_ref().is_some_and(|d| d.started) => {
             if vk == VK_ESCAPE {
@@ -713,6 +727,10 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRES
                     _ => {}
                 }
             }
+            // the "Change hotkey" screen takes every key, Alt ones too, and types nothing
+            WM_KEYDOWN | WM_SYSKEYDOWN if s.mode == Mode::Hotkey => hotkey::on_key(VIRTUAL_KEY(wp.0 as u16), true),
+            WM_KEYUP | WM_SYSKEYUP if s.mode == Mode::Hotkey => hotkey::on_key(VIRTUAL_KEY(wp.0 as u16), false),
+            WM_CHAR | WM_SYSCHAR if s.mode == Mode::Hotkey => {}
             WM_KEYDOWN => on_key(VIRTUAL_KEY(wp.0 as u16)),
             WM_CHAR => field::on_char(wp.0 as u16),
             WM_ACTIVATE => {
@@ -732,8 +750,14 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRES
             }
             WM_TRAY => match lp.0 as u32 {
                 WM_LBUTTONUP => show_popup(),
-                WM_RBUTTONUP => match win::popup_menu(&[(1, "Open  (Win+`)"), (0, ""), (2, "Quit Onion Launcher")]) {
+                WM_RBUTTONUP => match win::popup_menu(&[
+                    (1, &format!("Open  ({})", hotkey::label(hotkey::current()))),
+                    (3, "Change hotkey\u{2026}"),
+                    (0, ""),
+                    (2, "Quit Onion Launcher"),
+                ]) {
                     1 => show_popup(),
+                    3 => hotkey::start(),
                     2 => {
                         let _ = DestroyWindow(hwnd);
                     }
@@ -754,6 +778,7 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRES
                     invalidate();
                 }
                 TIMER_TEST => selftest::step(),
+                TIMER_SAVED => hotkey::saved_timer(),
                 _ => {}
             },
             WM_LOADED => on_loaded(),
@@ -779,7 +804,7 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRES
                 PostQuitMessage(0);
             }
             // Explorer restarted: put the tray icon back
-            m if m == s.taskbar_created && m != 0 => win::add_tray(hwnd, s.tray_icon),
+            m if m == s.taskbar_created && m != 0 => win::add_tray(hwnd, s.tray_icon, &hotkey::label(hotkey::current())),
             _ => return DefWindowProcW(hwnd, msg, wp, lp),
         }
         LRESULT(0)
@@ -923,6 +948,8 @@ fn main() {
             tray_icon,
             taskbar_created: RegisterWindowMessageW(w!("TaskbarCreated")),
             busy: false,
+            hotkey_on: false,
+            capture: hotkey::Capture::new(),
             test,
         });
         log(&format!("glass={glass} scale={scale}"));
@@ -943,14 +970,11 @@ fn main() {
         if testing {
             SetTimer(hwnd, TIMER_TEST, 500, None);
         } else {
-            win::add_tray(hwnd, tray_icon);
-            // the key left of 1 on this keyboard (` on US layouts, ^ on German, ' on UK...)
-            let key = match MapVirtualKeyW(0x29, MAPVK_VSC_TO_VK) {
-                0 => VK_OEM_3.0 as u32,
-                vk => vk,
-            };
-            if RegisterHotKey(hwnd, HOTKEY_ID, MOD_WIN | MOD_NOREPEAT, key).is_err() {
-                MessageBoxW(hwnd, w!("Win + the key left of 1 is already used by another app. The tray icon still works."), w!("Onion Launcher"), MB_ICONWARNING);
+            let keys = hotkey::label(hotkey::current());
+            win::add_tray(hwnd, tray_icon, &keys);
+            if !hotkey::register_current() {
+                let text = format!("{keys} is already used by another app. The tray icon still works.\n\nTo pick another hotkey, right-click the Onion Launcher icon by the clock and choose Change hotkey.");
+                MessageBoxW(hwnd, &HSTRING::from(text), w!("Onion Launcher"), MB_ICONWARNING);
             }
             if no_save {
                 let text = format!(

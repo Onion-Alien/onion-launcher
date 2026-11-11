@@ -124,6 +124,9 @@ pub fn step() {
     if t.tag == "readme" {
         return step_readme(step);
     }
+    if t.tag == "hotkey" {
+        return step_hotkey(step);
+    }
     let short = t.tag != "full";
     let n = s.cfg.apps.len();
     match step {
@@ -301,6 +304,63 @@ fn step_readme(step: u32) {
             snap("remove");
         }
         13 => quit(),
+        _ => {}
+    }
+}
+
+/// Tray menu > Change hotkey... Posted keys don't change what Windows says is held
+/// down, so the combinations themselves go straight to hotkey::try_set.
+fn step_hotkey(step: u32) {
+    let s = st();
+    let saved = || std::fs::read_to_string(&st().cfg_path).is_ok_and(|t| t.contains("\"hotkey\""));
+    match step {
+        0 => hotkey::start(),
+        1 => {
+            log(&format!("opened: visible={} mode_hotkey={} registered={}", visible(), s.mode == Mode::Hotkey, s.hotkey_on));
+            snap("waiting");
+            post(WM_KEYDOWN, b'A' as usize, LPARAM(0)); // A on its own
+        }
+        2 => snap("needs-modifier"),
+        3 => hotkey::hold(MOD_CONTROL.0 | MOD_ALT.0), // Ctrl and Alt held, the key still to come
+        4 => snap("holding"),
+        5 => {
+            s.capture.held = 0;
+            hotkey::try_set(MOD_WIN.0, u32::from(b'L'));
+        }
+        6 => snap("taken"),
+        7 => hotkey::try_set(MOD_ALT.0, VK_F4.0 as u32),
+        8 => snap("reserved"),
+        9 => hotkey::try_set(MOD_CONTROL.0 | MOD_SHIFT.0, VK_SPACE.0 as u32),
+        10 => {
+            log(&format!("saved: {:?} in file={} registered={}", s.cfg.hotkey, saved(), s.hotkey_on));
+            snap("saved");
+        }
+        // "Saved" closes the box by itself
+        14 => {
+            log(&format!("after saved: visible={} grid={}", visible(), s.mode == Mode::Grid));
+            hotkey::start();
+        }
+        15 => {
+            snap("waiting-again");
+            hotkey::try_set(MOD_WIN.0 | MOD_CONTROL.0 | MOD_ALT.0 | MOD_SHIFT.0, VK_NEXT.0 as u32); // the longest
+        }
+        16 => snap("saved-long"),
+        20 => {
+            log(&format!("long: {} visible={}", hotkey::label(hotkey::current()), visible()));
+            hotkey::start();
+            post(WM_KEYDOWN, VK_ESCAPE.0 as usize, LPARAM(0));
+        }
+        21 => {
+            log(&format!("after Esc: visible={} still {} registered={}", visible(), hotkey::label(hotkey::current()), s.hotkey_on));
+            // back to the usual one: nothing is kept in the file
+            hotkey::start();
+            let d = hotkey::default_key();
+            hotkey::try_set(d.mods, d.key);
+        }
+        22 => {
+            log(&format!("back to default: {:?} in file={}", s.cfg.hotkey, saved()));
+            quit();
+        }
         _ => {}
     }
 }
