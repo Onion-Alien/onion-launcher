@@ -10,6 +10,10 @@ next to the mouse. Click one, or press its number, and it opens.
 
 Free and open source, for Windows 11. Small (a 1 MB app, no admin rights), and it never goes online.
 
+<!-- release -->
+Version **0.2.8** · [VirusTotal: 71 of 71 clean](https://www.virustotal.com/gui/file/089bc8f5ca5321c19593b7b4a52a653e2561dfa09dd15fb95003b14cfdf482b4) · [what's new](CHANGELOG.md)
+<!-- /release -->
+
 ## Using it
 
 - **Open the box:** press **Win + `** (the key left of 1, whatever it shows on your
@@ -36,10 +40,7 @@ Onion Launcher says so when it starts, and the tray icon still works.
 
 ## Install
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/install-dark.png">
-  <img src="docs/images/install-light.png" width="500" alt="The Install Onion Launcher window: a short description, a 'Start with Windows' checkbox, a picture of the launcher, and Install and Cancel buttons">
-</picture>
+<img src="docs/images/install.png" width="500" alt="The Install Onion Launcher window: a short description, a 'Start with Windows' checkbox, a picture of the launcher, and Install and Cancel buttons">
 
 Download `OnionLauncherSetup.exe` from the [latest release](../../releases/latest) and run
 it. It asks whether Onion Launcher should start with Windows; press **Install**. No admin
@@ -47,8 +48,9 @@ rights needed: it goes in `%LOCALAPPDATA%\Programs\Onion Launcher`, the Start me
 Settings > Apps.
 
 The installer isn't code-signed yet, so Windows may show a "Windows protected your PC"
-warning the first time: click **More info**, then **Run anyway**. Each release lists the
-installer's SHA-256, so you can check the download with `Get-FileHash OnionLauncherSetup.exe`.
+warning the first time: click **More info**, then **Run anyway**. Every release is scanned
+on VirusTotal (the link is at the top) and lists the installer's SHA-256, so you can check
+the download with `Get-FileHash OnionLauncherSetup.exe`.
 
 Onion Launcher opens as soon as it's installed. If you untick **Start with Windows**, start
 it yourself after a restart: search the Start menu for **Onion Launcher**. **Uninstall Onion Launcher** is right there too (or use Settings > Apps >
@@ -83,11 +85,13 @@ cargo build --release
 
 The exe lands in `target\release\OnionLauncher.exe` and runs from anywhere. To make the
 installer, use `powershell -File scripts\build-release.ps1` (needs
-[Inno Setup](https://jrsoftware.org/isinfo.php) 6.6 or newer and Python with Pillow): it
+[Inno Setup](https://jrsoftware.org/isinfo.php) 6.7 or newer and Python with Pillow): it
 builds the same exe but leaves your own folder names out of it, checks that they're gone,
 and wraps it in `target\installer\OnionLauncherSetup.exe` (from `installer\OnionLauncher.iss`).
 `powershell -File scripts\installer_pictures.ps1` then takes pictures of the installer's
 pages on a hidden desktop, without installing anything.
+`python scripts\vt_scan.py target\installer\OnionLauncherSetup.exe` scans the installer on
+VirusTotal (it needs a free API key; the script says where to put it).
 
 ### The self-test
 

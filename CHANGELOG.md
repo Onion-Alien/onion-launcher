@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.8 (2026-11-11)
+
+- The installer now scans clean on VirusTotal. A few virus scanners guessed "malware" from
+  the look of the setup file alone (Onion Launcher itself always scanned clean). To stop
+  that, the setup file has the standard setup icon instead of Onion Launcher's own, and a
+  plain light window. Onion Launcher itself is the same as 0.2.7 and keeps its icon.
+
 ## 0.2.7 (2026-11-11)
 
 Fixes from a read-through of all the code. Nothing looks or works differently otherwise.
