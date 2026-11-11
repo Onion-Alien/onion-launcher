@@ -38,7 +38,7 @@ Onion Launcher says so when it starts, and the tray icon still works.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/install-dark.png">
-  <img src="docs/images/install-light.png" width="500" alt="The Install Onion Launcher window: a short description, a 'Start Onion Launcher when Windows starts' checkbox, a picture of the launcher, and Install and Cancel buttons">
+  <img src="docs/images/install-light.png" width="500" alt="The Install Onion Launcher window: a short description, a 'Start with Windows' checkbox, a picture of the launcher, and Install and Cancel buttons">
 </picture>
 
 Download `OnionLauncherSetup.exe` from the [latest release](../../releases/latest) and run
@@ -50,9 +50,8 @@ The installer isn't code-signed yet, so Windows may show a "Windows protected yo
 warning the first time: click **More info**, then **Run anyway**. Each release lists the
 installer's SHA-256, so you can check the download with `Get-FileHash OnionLauncherSetup.exe`.
 
-Onion Launcher starts as soon as it's installed. If you untick **Start Onion Launcher when
-Windows starts**, start it yourself after a restart: search the Start menu for **Onion
-Launcher**. **Uninstall Onion Launcher** is right there too (or use Settings > Apps >
+Onion Launcher opens as soon as it's installed. If you untick **Start with Windows**, start
+it yourself after a restart: search the Start menu for **Onion Launcher**. **Uninstall Onion Launcher** is right there too (or use Settings > Apps >
 Installed apps).
 
 <picture>

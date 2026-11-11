@@ -3,8 +3,8 @@
 ; self-installing exe was called a trojan by Windows Defender's machine-learning guess).
 ;
 ;   - no admin needed: %LOCALAPPDATA%\Programs\Onion Launcher, the same folder as 0.2.2
-;   - one page: what it is, a picture of the launcher box, and a "Start Onion Launcher
-;     when Windows starts" box (ticked; an update keeps the last install's choice). Then
+;   - one page: what it is, a picture of the launcher box, and a "Start with Windows"
+;     box (ticked; an update keeps the last install's choice). Then
 ;     installing, then "All done" with "Open Onion Launcher now"
 ;   - Inno's Windows 11 look, light or dark like Windows, with no side panel or header
 ;     logo: the launcher picture is the only image
@@ -66,9 +66,13 @@ DisableReadyPage=yes
 WizardStyle=modern {#SHOTSTYLE} windows11 hidebevels
 WizardSizePercent=100
 SetupIconFile=..\target\installer\OnionLauncher.ico
-; no side panel or header logo (InitializeWizard adds the launcher picture instead)
+; no side panel or header logo (InitializeWizard adds the launcher picture instead). The
+; DynamicDark ones too: in "follow Windows" mode a dark PC otherwise gets Inno's own
+; artwork (a box and a disc) behind the last page's text
 WizardImageFile=
 WizardSmallImageFile=
+WizardImageFileDynamicDark=
+WizardSmallImageFileDynamicDark=
 UninstallDisplayIcon={app}\{#AppExeName}.exe
 UninstallDisplayName={#AppName}
 OutputDir=..\target\installer
@@ -93,7 +97,7 @@ FinishedLabelNoIcons=Onion Launcher is installed. To open your apps, press Win +
 ClickFinish=
 
 [Tasks]
-Name: "startup"; Description: "Start Onion Launcher when Windows starts"
+Name: "startup"; Description: "Start with Windows"
 
 [Files]
 ; the launcher picture, for the pages only (never installed)
@@ -106,7 +110,7 @@ Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExeName}.exe"; Comment:
 Name: "{autoprograms}\Uninstall {#AppName}"; Filename: "{uninstallexe}"; Comment: "Remove Onion Launcher from this PC"
 
 [Registry]
-; "Start Onion Launcher when Windows starts": set when ticked, removed when unticked
+; "Start with Windows": set when ticked, removed when unticked
 ; (on an update too) and on uninstall
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#AppExeName}"; ValueData: """{app}\{#AppExeName}.exe"""; Tasks: startup; Flags: uninsdeletevalue
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "{#AppExeName}"; Tasks: not startup; Flags: deletevalue dontcreatekey uninsdeletevalue
@@ -161,8 +165,17 @@ end;
 
 procedure InitializeWizard;
 begin
+  // and in case Inno draws its own pictures anyway: hidden
+  WizardForm.WizardBitmapImage.Visible := False;
+  WizardForm.WizardBitmapImage2.Visible := False;
+  WizardForm.WizardSmallBitmapImage.Visible := False;
   TasksBox := AddBox(WizardForm.SelectTasksPage);
   DoneBox := AddBox(WizardForm.FinishedPage);
+end;
+
+procedure InitializeUninstallProgressForm;
+begin
+  UninstallProgressForm.WizardSmallBitmapImage.Visible := False;
 end;
 
 // Text on the left, the picture on the right
@@ -174,7 +187,7 @@ begin
   if CurPageID = wpSelectTasks then
   begin
     TasksBox.Left := WizardForm.SelectTasksPage.ClientWidth - TasksBox.Width;
-    TasksBox.Top := 0;
+    TasksBox.Top := WizardForm.SelectTasksLabel.Top;   // level with the text
     Right := TasksBox.Left - Gap;
     WizardForm.SelectTasksLabel.Width := Right - WizardForm.SelectTasksLabel.Left;
     WizardForm.SelectTasksLabel.AdjustHeight;
@@ -201,6 +214,8 @@ begin
     WizardForm.FinishedLabel.Top := DoneBox.Top + ScaleY(44);
     WizardForm.FinishedLabel.Width := Right - Left;
     WizardForm.FinishedLabel.Height := WizardForm.RunList.Top - ScaleY(12) - WizardForm.FinishedLabel.Top;
+    // Finish where Cancel was (it's hidden here), not stranded in the middle
+    WizardForm.NextButton.Left := WizardForm.CancelButton.Left;
   end;
 end;
 

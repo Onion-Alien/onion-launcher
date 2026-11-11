@@ -109,7 +109,7 @@ public static class OnionSetupShots {
 "@
 }
 
-foreach ($style in 'dark', 'light') {
+foreach ($style in 'dynamic', 'dark', 'light') {
     $dir = Join-Path $root "target\installer\preview-$style"
     & $iscc /Q /DPREVIEW "/DSHOTSTYLE=$style" "/O$dir" (Join-Path $root 'installer\OnionLauncher.iss')
     if ($LASTEXITCODE) { throw "ISCC failed ($style)" }

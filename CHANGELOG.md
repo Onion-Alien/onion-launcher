@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.4 (2026-11-11)
+
+- The installer's last page showed Inno Setup's own picture behind the text when Windows
+  is in dark mode; it's gone. Finish sits on the right, the picture lines up with the
+  text, and the box now just says "Start with Windows".
+- A tile's highlight (on hover, when pressed or dragged) now ends just under its name,
+  instead of leaving room for a second line the name doesn't have.
+
 ## 0.2.3 (2026-11-11)
 
 - A proper installer, `OnionLauncherSetup.exe`, instead of an exe that installed itself:

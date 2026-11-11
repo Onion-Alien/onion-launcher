@@ -408,9 +408,25 @@ pub fn animate(s: &mut State, dt: f32) -> bool {
 
 // ---------- painting ----------
 
+/// A tile's card (hover, pressed, lifted): it ends as far below the name (one line or
+/// two) as it starts above the icon, not at the bottom of the slot, which leaves room
+/// for a second line.
+fn card_rect(r: Rect, label: Option<&IDWriteTextLayout>) -> Rect {
+    let label_h = label.map_or(0.0, |l| {
+        let mut m = DWRITE_TEXT_METRICS::default();
+        unsafe {
+            let _ = l.GetMetrics(&mut m);
+        }
+        m.height
+    });
+    let inner = r.inset(2.0);
+    Rect::new(inner.x, inner.y, inner.w, (54.0 + label_h + 10.0 - 2.0).min(inner.h))
+}
+
 #[allow(clippy::too_many_arguments)]
 fn draw_tile(g: &Gfx, th: &Theme, icons: &mut Icons, names: &mut HashMap<String, IDWriteTextLayout>, app: &App, r: Rect, glow: f32, down: bool, badge: Option<usize>, ipx: u32) {
-    let inner = r.inset(2.0);
+    let label = name_layout(names, g, &app.name, r.w - 8.0).cloned();
+    let inner = card_rect(r, label.as_ref());
     if glow > 0.0 {
         g.fill(inner, 8.0, if down { th.pressed } else { th.hover.fade(glow) });
         g.outline(inner, 8.0, th.stroke.fade(glow * 0.6));
@@ -423,7 +439,7 @@ fn draw_tile(g: &Gfx, th: &Theme, icons: &mut Icons, names: &mut HashMap<String,
         Some(b) => g.image(b, ir),
         None => placeholder(g, th, ir, &app.name),
     }
-    if let Some(l) = name_layout(names, g, &app.name, r.w - 8.0) {
+    if let Some(l) = &label {
         g.draw_layout(l, r.x + 4.0, r.y + 54.0, th.text);
     }
     if let Some(k) = badge {
@@ -494,7 +510,11 @@ pub fn paint_grid(s: &mut State, th: &Theme) {
                 }
             }
             Item::Gap => {
-                let rr = r.inset(4.0);
+                // the spot the dragged tile would drop into: as tall as its card
+                let rr = match drag {
+                    Some((i, ..)) => card_rect(*r, name_layout(names, g, &cfg.apps[i].name, r.w - 8.0)).inset(2.0),
+                    None => r.inset(4.0),
+                };
                 g.fill(rr, 8.0, th.accent_soft);
                 g.outline(rr, 8.0, th.accent.fade(0.55));
             }
@@ -529,7 +549,7 @@ pub fn paint_grid(s: &mut State, th: &Theme) {
     // the dragged tile, lifted above the rest
     if let Some((i, at, grab)) = drag {
         let r = Rect::new(at.0 - grab.0, at.1 - grab.1, TILE_W, TILE_H);
-        let card = r.inset(2.0);
+        let card = card_rect(r, name_layout(names, g, &cfg.apps[i].name, r.w - 8.0));
         g.fill(card.inset(-1.0), 9.0, hex(0x00000022));
         g.fill(card, 8.0, th.surface);
         g.fill(card, 8.0, th.selected);
