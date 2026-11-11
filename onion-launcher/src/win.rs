@@ -77,7 +77,16 @@ pub fn track_menu(m: HMENU) -> usize {
         let _ = GetCursorPos(&mut pt);
         s.busy = true; // losing focus to the menu mustn't hide the box
         let _ = SetForegroundWindow(s.hwnd);
-        let cmd = TrackPopupMenu(m, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, s.hwnd, None);
+        // from the tray, the mouse is on the taskbar: open the menu just above it, or the
+        // taskbar can cover its last item
+        let wa = work_area(MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST));
+        let flags = if pt.y >= wa.bottom {
+            pt.y = wa.bottom;
+            TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_BOTTOMALIGN
+        } else {
+            TPM_RETURNCMD | TPM_RIGHTBUTTON
+        };
+        let cmd = TrackPopupMenu(m, flags, pt.x, pt.y, 0, s.hwnd, None);
         s.busy = false;
         let _ = DestroyMenu(m);
         cmd.0 as usize
@@ -129,6 +138,9 @@ pub fn monitor_scale(mon: HMONITOR) -> f32 {
     x as f32 / 96.0
 }
 
+/// The unassigned key code swallow_win_key presses.
+pub const SWALLOW_KEY: u16 = 0xE8;
+
 /// While Windows is held for the hotkey, tell Windows another key was pressed
 /// too (an unassigned key code that does nothing), so letting go of Windows
 /// doesn't also open the Start menu, which would steal focus and close the box.
@@ -140,7 +152,7 @@ pub fn swallow_win_key() {
         }
         let key = |flags: KEYBD_EVENT_FLAGS| INPUT {
             r#type: INPUT_KEYBOARD,
-            Anonymous: INPUT_0 { ki: KEYBDINPUT { wVk: VIRTUAL_KEY(0xE8), wScan: 0, dwFlags: flags, time: 0, dwExtraInfo: 0 } },
+            Anonymous: INPUT_0 { ki: KEYBDINPUT { wVk: VIRTUAL_KEY(SWALLOW_KEY), wScan: 0, dwFlags: flags, time: 0, dwExtraInfo: 0 } },
         };
         let inputs = [key(KEYBD_EVENT_FLAGS(0)), key(KEYEVENTF_KEYUP)];
         SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);

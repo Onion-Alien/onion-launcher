@@ -278,8 +278,13 @@ fn resize_in_place() {
 // ---------- show / hide / launch ----------
 
 fn show_popup() {
+    show_popup_in(Mode::Grid);
+}
+
+/// Opens the box next to the mouse, on screen `m` (sized for it before it shows).
+fn show_popup_in(m: Mode) {
     let s = st();
-    set_mode(Mode::Grid);
+    set_mode(m);
     s.hover = None;
     s.pressed = None;
     s.mouse = None;

@@ -11,7 +11,7 @@ next to the mouse. Click one, or press its number, and it opens.
 Free and open source, for Windows 11. Small (a 1 MB app, no admin rights), and it never goes online.
 
 <!-- release -->
-Version **0.2.8** · [VirusTotal: 71 of 71 clean](https://www.virustotal.com/gui/file/089bc8f5ca5321c19593b7b4a52a653e2561dfa09dd15fb95003b14cfdf482b4) · [what's new](CHANGELOG.md)
+Version **0.2.9** · [VirusTotal: 71 of 71 clean](https://www.virustotal.com/gui/file/0446f3c30a3f3d30016cbfd3544b451d4ec21d1cb1d5fc7bc5d7d1917a3e368d) · [what's new](CHANGELOG.md)
 <!-- /release -->
 
 ## Using it

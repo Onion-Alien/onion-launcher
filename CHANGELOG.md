@@ -1,11 +1,13 @@
 # Changelog
 
-## Not released yet
+## 0.2.9 (2026-11-12)
 
 - **Change the hotkey:** right-click the tray icon and pick **Change hotkey...**, then press
   the new keys (with Ctrl, Alt or Win, like Ctrl + Space). It's saved with your apps, and
   the tray menu and tooltip show the hotkey you picked. A shortcut another app already
   uses is refused with a message, and **Esc** keeps the old one.
+- The tray icon's menu now always opens above the taskbar. On some Windows 11 builds the
+  taskbar covered its last item (Quit).
 
 ## 0.2.8 (2026-11-11)
 

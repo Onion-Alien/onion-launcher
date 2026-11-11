@@ -117,8 +117,7 @@ pub fn register_current() -> bool {
 
 /// Tray menu > Change hotkey...: the box opens on the "press the new keys" screen.
 pub fn start() {
-    show_popup();
-    set_mode(Mode::Hotkey);
+    show_popup_in(Mode::Hotkey);
 }
 
 /// Entering the screen: let go of the hotkey, so pressing it (or anything) lands here.
@@ -162,8 +161,9 @@ fn is_modifier(vk: VIRTUAL_KEY) -> bool {
 /// A key went down (or up: modifiers only) on the screen.
 pub fn on_key(vk: VIRTUAL_KEY, down: bool) {
     let s = st();
-    if s.capture.note == Note::Saved {
-        return; // closing
+    // closing; or the do-nothing key win::swallow_win_key presses while Win is held
+    if s.capture.note == Note::Saved || vk.0 == win::SWALLOW_KEY {
+        return;
     }
     if is_modifier(vk) {
         // Win let go on its own would open the Start menu and close the box
