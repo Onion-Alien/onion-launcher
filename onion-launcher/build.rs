@@ -2,6 +2,9 @@
 //! compiler (the GNU toolchain has none here): a COFF object holding a
 //! `.rsrc` section, which the linker takes as it is.
 //!
+//! The version resource fills in the exe's Properties > Details (name, company,
+//! version), so it isn't a blank, unnamed program.
+//!
 //! The manifest makes the app per-monitor DPI aware (sharp on every screen)
 //! and asks for the modern common-controls library (themed menus/dialogs).
 
@@ -9,6 +12,7 @@ use std::path::Path;
 
 const RT_ICON: u32 = 3;
 const RT_GROUP_ICON: u32 = 14;
+const RT_VERSION: u32 = 16;
 const RT_MANIFEST: u32 = 24;
 const LANG_EN_US: u32 = 0x409;
 
@@ -27,6 +31,7 @@ const MANIFEST: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=Cargo.toml");
     let sizes = [16u32, 24, 32, 48, 64];
     let images: Vec<Vec<u8>> = sizes.iter().map(|&s| ico_image(s)).collect();
 
@@ -48,6 +53,7 @@ fn main() {
         items.push((RT_ICON, i as u32 + 1, img.clone()));
     }
     items.push((RT_GROUP_ICON, 1, group));
+    items.push((RT_VERSION, 1, version_info(&std::env::var("CARGO_PKG_VERSION").unwrap())));
     items.push((RT_MANIFEST, 1, MANIFEST.as_bytes().to_vec()));
 
     let obj = Path::new(&std::env::var("OUT_DIR").unwrap()).join("res.o");
@@ -104,6 +110,64 @@ fn ico_image(size: u32) -> Vec<u8> {
     v
 }
 
+/// VS_VERSIONINFO: the fixed version numbers, then the text Explorer shows.
+fn version_info(version: &str) -> Vec<u8> {
+    let n: Vec<u16> = version.split('.').map(|p| p.parse().unwrap()).chain([0; 4]).take(4).collect();
+    let (ms, ls) = ((n[0] as u32) << 16 | n[1] as u32, (n[2] as u32) << 16 | n[3] as u32);
+    let mut fixed = vec![];
+    for x in [0xFEEF_04BD, 0x0001_0000, ms, ls, ms, ls, 0x3F, 0, 0x0004_0004, 1, 0, 0, 0] {
+        put32(&mut fixed, x);
+    }
+    let strings = [
+        ("CompanyName", "Onion Alien"),
+        ("FileDescription", "Onion Launcher"),
+        ("FileVersion", version),
+        ("InternalName", "OnionLauncher"),
+        ("LegalCopyright", "Copyright (C) Onion Launcher contributors. GPL-3.0-or-later."),
+        ("OriginalFilename", "OnionLauncher.exe"),
+        ("ProductName", "Onion Launcher"),
+        ("ProductVersion", version),
+    ];
+    let table: Vec<Vec<u8>> = strings.iter().map(|(k, v)| block(k, Value::Text(v), vec![])).collect();
+    let mut translation = vec![];
+    put16(&mut translation, 0x0409);
+    put16(&mut translation, 0x04B0);
+    block("VS_VERSION_INFO", Value::Binary(fixed), vec![
+        block("StringFileInfo", Value::None, vec![block("040904B0", Value::None, table)]),
+        block("VarFileInfo", Value::None, vec![block("Translation", Value::Binary(translation), vec![])]),
+    ])
+}
+
+enum Value<'a> {
+    None,
+    Text(&'a str),
+    Binary(Vec<u8>),
+}
+
+/// One version-resource block: length, value length, type, key, value, children, each
+/// started on a 4-byte boundary.
+fn block(key: &str, value: Value, children: Vec<Vec<u8>>) -> Vec<u8> {
+    let utf16 = |s: &str| -> Vec<u8> { s.encode_utf16().chain([0]).flat_map(u16::to_le_bytes).collect() };
+    let (len, kind, bytes) = match value {
+        Value::None => (0, 1, vec![]),
+        Value::Text(t) => (t.encode_utf16().count() as u16 + 1, 1, utf16(t)),
+        Value::Binary(b) => (b.len() as u16, 0, b),
+    };
+    let mut v = vec![0, 0];
+    put16(&mut v, len);
+    put16(&mut v, kind);
+    v.extend(utf16(key));
+    v.resize(v.len().next_multiple_of(4), 0);
+    v.extend(bytes);
+    for c in children {
+        v.resize(v.len().next_multiple_of(4), 0);
+        v.extend(c);
+    }
+    let total = v.len() as u16;
+    v[0..2].copy_from_slice(&total.to_le_bytes());
+    v
+}
+
 fn put16(v: &mut Vec<u8>, x: u16) {
     v.extend_from_slice(&x.to_le_bytes());
 }
@@ -116,7 +180,7 @@ fn put32(v: &mut Vec<u8>, x: u32) {
 /// Returns the section and where its data addresses are.
 fn rsrc(items: &[(u32, u32, Vec<u8>)]) -> (Vec<u8>, Vec<u32>) {
     let dir = |entries: usize| 16 + 8 * entries;
-    let types = [RT_ICON, RT_GROUP_ICON, RT_MANIFEST]; // ascending, as Windows requires
+    let types = [RT_ICON, RT_GROUP_ICON, RT_VERSION, RT_MANIFEST]; // ascending, as Windows requires
     let of_type = |t: u32| items.iter().filter(move |it| it.0 == t).count();
     let mut at = dir(types.len());
     let mut take = |n: usize, align: usize| {

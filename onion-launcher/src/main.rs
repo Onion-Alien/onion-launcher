@@ -13,12 +13,9 @@
 
 mod add;
 mod config;
-mod dialog;
-mod dib;
 mod field;
 mod gfx;
 mod grid;
-mod install;
 mod selftest;
 mod shell;
 mod theme;
@@ -39,7 +36,7 @@ use windows::Win32::Graphics::DirectWrite::*;
 use windows::Win32::Graphics::Dwm::*;
 use windows::Win32::Graphics::Gdi::*;
 use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress, LoadLibraryW};
-use windows::Win32::System::Threading::CreateMutexW;
+use windows::Win32::System::Threading::{CreateMutexW, OpenProcess, WaitForSingleObject, PROCESS_SYNCHRONIZE};
 use windows::Win32::UI::Controls::MARGINS;
 use windows::Win32::UI::HiDpi::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::*;
@@ -49,9 +46,9 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 const WM_TRAY: u32 = WM_APP + 1;
 const WM_LOADED: u32 = WM_APP + 2;
 const WM_LAUNCHED: u32 = WM_APP + 3;
-/// Sent by the installer (`install::quit_running`) before it replaces or removes the exe.
+/// Sent by `--quit` (which the installer runs before it replaces or removes the exe).
 pub const WM_QUIT_APP: u32 = WM_APP + 4;
-/// The main window's class; the installer finds the running copy by it.
+/// The main window's class; `--quit` finds the running copy by it.
 pub const CLASS: PCWSTR = w!("OnionLauncher");
 const WM_MOUSELEAVE: u32 = 0x02A3;
 const WM_NCUAHDRAWCAPTION: u32 = 0x00AE;
@@ -825,29 +822,27 @@ unsafe fn enable_glass(hwnd: HWND) -> bool {
         && DwmExtendFrameIntoClientArea(hwnd, &MARGINS { cxLeftWidth: -1, cxRightWidth: -1, cyTopHeight: -1, cyBottomHeight: -1 }).is_ok()
 }
 
+/// `--quit`: ask the running copy, if any, to close, and wait until it has (so the
+/// installer can replace or remove the exe). It saves after every change, so nothing is lost.
+fn quit_running() {
+    unsafe {
+        let Ok(hwnd) = FindWindowW(CLASS, PCWSTR::null()) else { return };
+        let mut pid = 0;
+        GetWindowThreadProcessId(hwnd, Some(&mut pid));
+        let process = OpenProcess(PROCESS_SYNCHRONIZE, false, pid);
+        let _ = PostMessageW(hwnd, WM_QUIT_APP, WPARAM(0), LPARAM(0));
+        if let Ok(p) = process {
+            WaitForSingleObject(p, 5000);
+            let _ = CloseHandle(p);
+        }
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     shell::com_init();
-    // Started with no arguments from anywhere but its installed place (Downloads, say):
-    // this exe is its own installer, like Onion Peel's.
-    match args.get(1).map(String::as_str) {
-        Some("--uninstall") => {
-            if dialog::run(dialog::Page::uninstall()) == Some(dialog::Kind::Uninstalled) {
-                install::remove_leftovers();
-            }
-            return;
-        }
-        Some("--quit") => return install::quit_running(),
-        None if !install::is_installed_copy() => {
-            dialog::run(dialog::Page::install());
-            return;
-        }
-        _ => {}
-    }
-    if config::arg_value(&args, "--tag").as_deref() == Some("setup") {
-        if let Some(dir) = config::arg_value(&args, "--selftest") {
-            return selftest::setup_pictures(std::path::Path::new(&dir));
-        }
+    if args.get(1).map(String::as_str) == Some("--quit") {
+        return quit_running();
     }
     let test = selftest::Test::from_args(&args);
     // one copy at a time (a second start just quits); the handle stays open until exit

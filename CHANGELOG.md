@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.3 (2026-11-11)
+
+- A proper installer, `OnionLauncherSetup.exe`, instead of an exe that installed itself:
+  Windows Defender's machine-learning check took 0.2.2's self-installing exe for a trojan
+  (`Trojan:Win32/Bearfoos.A!ml`, a false alarm) and removed it. The app itself no longer
+  has any install code, and its exe now has a name, publisher and version in
+  Properties > Details. The installer follows Windows' light or dark mode, has the same
+  "Start Onion Launcher when Windows starts" box, installs to the same folder with no admin
+  rights, and updates 0.2.2 in place (your list of apps stays).
+
 ## 0.2.2 (2026-11-11)
 
 - An installer, the same as Onion Peel's: run the downloaded `OnionLauncher.exe` and a

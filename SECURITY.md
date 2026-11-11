@@ -8,7 +8,8 @@
   `apps.broken.json` if that file was ever damaged).
 - **Installing writes only to your own user folders and registry:** the exe in
   `%LOCALAPPDATA%\Programs\Onion Launcher`, two Start menu shortcuts, its entry in
-  Settings > Apps (`HKCU\...\Uninstall\OnionLauncher`) and, if you tick the box,
+  Settings > Apps (`HKCU\...\Uninstall\{606E0F0C-9394-47FC-BC66-EEBD5C3B4E8C}_is1`, written by
+  its Inno Setup installer) and, if you tick the box,
   `HKCU\...\Run\OnionLauncher` to start it with Windows. Uninstalling removes all of
   them and leaves your list.
 - **It reads:** that file, Start's app list (`shell:AppsFolder` and the Start menu shortcuts,
@@ -17,8 +18,8 @@
 - **It runs programs only when you ask:** clicking a tile or pressing its number opens it
   the same way Explorer would. It starts with Windows only if you ticked that box when
   installing.
-- **It needs no admin rights** and changes no system settings. Installing or updating stops
-  a running copy first, so the exe can be replaced.
+- **It needs no admin rights** and changes no system settings. Installing or updating asks
+  a running copy to close first, so the exe can be replaced.
 
 Anyone who can edit your `apps.json` can make a tile run any program, the same as editing
 a shortcut on your desktop. Keep it in your own user folder.
