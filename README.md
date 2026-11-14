@@ -11,7 +11,7 @@ your favourite apps pops up next to the mouse. Click one, or press its number, a
 Free and open source, for Windows 11. Small (a 1 MB app, no admin rights), and it never goes online.
 
 <!-- release -->
-Version **0.2.9** · [VirusTotal: 71 of 71 clean](https://www.virustotal.com/gui/file/0446f3c30a3f3d30016cbfd3544b451d4ec21d1cb1d5fc7bc5d7d1917a3e368d) · [what's new](CHANGELOG.md)
+Version **0.2.10** · [VirusTotal: 70 of 70 clean](https://www.virustotal.com/gui/file/bbb081d512884610d8931c4e149254d6b4787cccd3384f557874bb9552a123ca) · [what's new](CHANGELOG.md)
 <!-- /release -->
 
 ## Using it

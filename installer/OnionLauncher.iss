@@ -143,7 +143,6 @@ const
   MOD_SHIFT = 4;
   MOD_WIN = 8;
   TryHotkeyId = 31001;       // taken for a moment to see whether another app has it
-  SwallowKey = $E8;          // the app's win::SWALLOW_KEY
   NoteGrey = $005F5F5F;
   NoteRed = $001C2BC4;       // Windows' own "danger" red
 
@@ -178,8 +177,6 @@ function MapVirtualKey(Code, MapType: Cardinal): Cardinal;
   external 'MapVirtualKeyW@user32.dll stdcall';   // sensitive-scan: allow (not an e-mail address)
 function GetKeyNameText(LParam: Longint; Buf: String; Size: Integer): Integer;
   external 'GetKeyNameTextW@user32.dll stdcall';   // sensitive-scan: allow (not an e-mail address)
-procedure KeybdEvent(Vk, Scan: Byte; Flags, ExtraInfo: Cardinal);
-  external 'keybd_event@user32.dll stdcall';   // sensitive-scan: allow (not an e-mail address)
 function PeekMessage(var Msg: TMsgRec; Wnd: HWND; First, Last, Remove: Cardinal): Integer;
   external 'PeekMessageW@user32.dll stdcall';   // sensitive-scan: allow (not an e-mail address)
 
@@ -357,21 +354,9 @@ var
   Mods: Cardinal;
   M: TMsgRec;
 begin
-  // the do-nothing key pressed below while Windows is held
-  if Key = SwallowKey then
-  begin
-    Key := 0;
-    exit;
-  end;
   Mods := HeldMods;
   if IsModifier(Key) then
   begin
-    // let go on its own, Windows would open the Start menu
-    if (Key = $5B) or (Key = $5C) then
-    begin
-      KeybdEvent(SwallowKey, 0, 0, 0);
-      KeybdEvent(SwallowKey, 0, 2, 0);   // KEYEVENTF_KEYUP
-    end;
     // a new try: an old "refused" goes away
     ShowKeys(ModNames(Mods) + '...');
     HotkeyEnter(nil);
