@@ -87,6 +87,34 @@ pub fn label(h: Hotkey) -> String {
     parts(h).join("+")
 }
 
+/// How many other keyboard layouts get their own copy of the usual hotkey.
+const MAX_LAYOUTS: usize = 8;
+
+/// The key codes the usual hotkey's key has on the other keyboard layouts installed.
+/// Windows matches a hotkey by key code, and the key left of 1 is ` (VK_OEM_3) on a US
+/// layout but VK_OEM_8 on a UK one, so with both installed Win+` only worked in the
+/// layout that was on when Onion Launcher started.
+fn other_layout_keys(h: Hotkey) -> Vec<u32> {
+    if h != default_key() {
+        return Vec::new();
+    }
+    unsafe {
+        let mut list = [HKL::default(); 64];
+        let n = (GetKeyboardLayoutList(Some(&mut list)).max(0) as usize).min(list.len());
+        extra_keys(h.key, list[..n].iter().map(|hkl| MapVirtualKeyExW(0x29, MAPVK_VSC_TO_VK, *hkl)))
+    }
+}
+
+fn extra_keys(primary: u32, mapped: impl IntoIterator<Item = u32>) -> Vec<u32> {
+    let mut keys = Vec::new();
+    for vk in mapped {
+        if vk != 0 && vk != primary && !keys.contains(&vk) && keys.len() < MAX_LAYOUTS {
+            keys.push(vk);
+        }
+    }
+    keys
+}
+
 /// Takes the hotkey for this window. False if another app already has it.
 fn register(h: Hotkey) -> bool {
     let s = st();
@@ -94,7 +122,17 @@ fn register(h: Hotkey) -> bool {
         // the test never takes a real hotkey; Win+L stands in for a taken one (Windows keeps it)
         !(h.mods == MOD_WIN.0 && h.key == u32::from(b'L'))
     } else {
-        unsafe { RegisterHotKey(s.hwnd, HOTKEY_ID, HOT_KEY_MODIFIERS(h.mods) | MOD_NOREPEAT, h.key).is_ok() }
+        let mods = HOT_KEY_MODIFIERS(h.mods) | MOD_NOREPEAT;
+        let ok = unsafe { RegisterHotKey(s.hwnd, HOTKEY_ID, mods, h.key).is_ok() };
+        if ok {
+            // the same key on the other layouts; one another app has is simply skipped
+            for (i, vk) in other_layout_keys(h).into_iter().enumerate() {
+                unsafe {
+                    let _ = RegisterHotKey(s.hwnd, HOTKEY_ID + 1 + i as i32, mods, vk);
+                }
+            }
+        }
+        ok
     };
     s.hotkey_on = ok;
     ok
@@ -103,8 +141,10 @@ fn register(h: Hotkey) -> bool {
 fn unregister() {
     let s = st();
     if s.hotkey_on && s.test.is_none() {
-        unsafe {
-            let _ = UnregisterHotKey(s.hwnd, HOTKEY_ID);
+        for id in HOTKEY_ID..=HOTKEY_ID + MAX_LAYOUTS as i32 {
+            unsafe {
+                let _ = UnregisterHotKey(s.hwnd, id);
+            }
         }
     }
     s.hotkey_on = false;
@@ -306,4 +346,27 @@ pub fn paint(s: &mut State, th: &Theme) {
         g.text(&line, hint, &g.f.small, color);
     }
     g.set_alpha(1.0);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_hotkey_includes_the_us_and_uk_key_codes() {
+        let us = u32::from(VK_OEM_3.0);
+        let uk = u32::from(VK_OEM_8.0);
+        assert_eq!(extra_keys(us, [us, uk]), vec![uk]);
+        assert_eq!(extra_keys(uk, [us, uk]), vec![us]);
+    }
+
+    #[test]
+    fn layout_aliases_skip_failed_mappings_and_duplicate_keys() {
+        assert_eq!(extra_keys(192, [0, 192, 223, 223, 0, 220]), vec![223, 220]);
+    }
+
+    #[test]
+    fn every_alias_fits_in_the_unregistered_id_range() {
+        assert_eq!(extra_keys(99, 1..20), (1..=MAX_LAYOUTS as u32).collect::<Vec<_>>());
+    }
 }
