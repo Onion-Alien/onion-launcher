@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.10 (2026-11-14)
+
+- Fixed: with more than one keyboard layout installed (like US and UK), Win + the key left
+  of 1 only worked in the layout that was on when Onion Launcher started. That key has a
+  different key code in each layout, so after switching layouts it did nothing. It now
+  works in every installed layout.
+
 ## 0.2.9 (2026-11-12)
 
 - **Change the hotkey:** right-click the tray icon and pick **Change hotkey...**, then press
