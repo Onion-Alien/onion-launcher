@@ -2,6 +2,10 @@
 
 ## 0.2.10 (2026-11-14)
 
+- **Pick your hotkey when you install:** the installer shows the hotkey (Win + `, or the
+  one you picked before). Click it and press the keys you want, like Ctrl + Space. A
+  shortcut another app already uses is refused, like in **Change hotkey...**.
+- The README and the website now say you can pick any hotkey, not only Win + `.
 - Fixed: with more than one keyboard layout installed (like US and UK), Win + the key left
   of 1 only worked in the layout that was on when Onion Launcher started. That key has a
   different key code in each layout, so after switching layouts it did nothing. It now
