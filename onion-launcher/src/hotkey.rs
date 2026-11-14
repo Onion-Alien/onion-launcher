@@ -1,6 +1,7 @@
 //! The hotkey that opens the box: Win + the key left of 1, unless another one was
-//! picked (tray menu > Change hotkey..., saved in apps.json). This file names keys,
-//! registers the hotkey with Windows, and runs the "press the new keys" screen.
+//! picked (in the installer, or tray menu > Change hotkey..., saved in apps.json). This
+//! file names keys, registers the hotkey with Windows, and runs the "press the new keys"
+//! screen.
 
 use crate::*;
 use config::Hotkey;
@@ -261,6 +262,27 @@ pub fn try_set(mods: u32, key: u32) {
     invalidate();
 }
 
+/// What the installer's pick saves as: the usual one is kept as "none" (so it follows
+/// the keyboard layout). None if the pick isn't a hotkey the Change hotkey screen allows.
+fn installer_pick(mods: u32, key: u32, usual: Hotkey) -> Option<Option<Hotkey>> {
+    let all = MOD_ALT.0 | MOD_CONTROL.0 | MOD_SHIFT.0 | MOD_WIN.0;
+    let ok = mods & !all == 0 && mods & (MOD_CONTROL.0 | MOD_ALT.0 | MOD_WIN.0) != 0 && (1..=0xFE).contains(&key) && !(mods == MOD_ALT.0 && key == VK_F4.0 as u32);
+    let h = Hotkey { mods, key };
+    ok.then_some((h != usual).then_some(h))
+}
+
+/// `--set-hotkey <mods> <key>`: the hotkey picked in the installer, saved with the apps.
+/// Opens nothing (the installer has closed any running copy first).
+pub fn set_from_installer(args: &[String]) {
+    let n = |i: usize| args.get(i).and_then(|v| v.parse::<u32>().ok());
+    let (Some(mods), Some(key)) = (n(2), n(3)) else { return };
+    let Some(hotkey) = installer_pick(mods, key, default_key()) else { return };
+    let path = config::config_path(args);
+    let (mut cfg, _) = config::Config::load(&path);
+    cfg.hotkey = hotkey;
+    cfg.save(&path);
+}
+
 /// "Saved" has been up long enough.
 pub fn saved_timer() {
     unsafe {
@@ -363,6 +385,24 @@ mod tests {
     #[test]
     fn layout_aliases_skip_failed_mappings_and_duplicate_keys() {
         assert_eq!(extra_keys(192, [0, 192, 223, 223, 0, 220]), vec![223, 220]);
+    }
+
+    #[test]
+    fn installer_pick_keeps_the_usual_one_as_none() {
+        let usual = Hotkey { mods: MOD_WIN.0, key: 192 };
+        let ctrl_space = Hotkey { mods: MOD_CONTROL.0, key: 0x20 };
+        assert_eq!(installer_pick(MOD_WIN.0, 192, usual), Some(None));
+        assert_eq!(installer_pick(MOD_CONTROL.0, 0x20, usual), Some(Some(ctrl_space)));
+    }
+
+    #[test]
+    fn installer_pick_refuses_what_the_screen_refuses() {
+        let usual = Hotkey { mods: MOD_WIN.0, key: 192 };
+        assert_eq!(installer_pick(0, 0x20, usual), None);
+        assert_eq!(installer_pick(MOD_SHIFT.0, 0x41, usual), None);
+        assert_eq!(installer_pick(MOD_ALT.0, VK_F4.0 as u32, usual), None);
+        assert_eq!(installer_pick(MOD_CONTROL.0, 0, usual), None);
+        assert_eq!(installer_pick(MOD_CONTROL.0 | 0x4000, 0x20, usual), None);
     }
 
     #[test]

@@ -886,6 +886,9 @@ fn main() {
     if args.get(1).map(String::as_str) == Some("--quit") {
         return quit_running();
     }
+    if args.get(1).map(String::as_str) == Some("--set-hotkey") {
+        return hotkey::set_from_installer(&args);
+    }
     let test = selftest::Test::from_args(&args);
     // one copy at a time (a second start just quits); the handle stays open until exit
     if test.is_none() {

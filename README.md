@@ -1,7 +1,7 @@
 # Onion Launcher
 
-Your apps, one key away. Press **Win + `** and a small box of your favourite apps pops up
-next to the mouse. Click one, or press its number, and it opens.
+Your apps, one key away. Press **Win + `** (or any shortcut you pick) and a small box of
+your favourite apps pops up next to the mouse. Click one, or press its number, and it opens.
 
 <p align="center">
   <img src="docs/images/launcher-dark.png" alt="Onion Launcher in dark mode: a box of app tiles in sections called Games and Create" width="49%">
@@ -16,11 +16,12 @@ Version **0.2.9** · [VirusTotal: 71 of 71 clean](https://www.virustotal.com/gui
 
 ## Using it
 
-- **Open the box:** press **Win + `** (the key left of 1, whatever it shows on your
-  keyboard), or click its icon in the tray.
-  Press **Esc** or click anywhere else to close it.
-- **Change the hotkey:** right-click the tray icon, pick **Change hotkey...**, and press the
-  new keys (with Ctrl, Alt or Win, like **Ctrl + Space**). **Esc** keeps the old one.
+- **Open the box:** press your hotkey, or click its icon in the tray. The hotkey is
+  **Win + `** (the key left of 1, whatever it shows on your keyboard) unless you picked
+  another. Press **Esc** or click anywhere else to close it.
+- **Pick your own hotkey:** any key with Ctrl, Alt or Win, like **Ctrl + Space** or
+  **Alt + Q**. Pick it when you install, or later: right-click the tray icon, pick
+  **Change hotkey...**, and press the new keys. **Esc** keeps the old one.
 - **Open an app:** click it, or press its number (**1** to **9**, then **0**).
 - **Add apps:** click the **+** tile (or press **+**) to search every app on the PC, then click
   one or press **Enter**. **Browse files** at the bottom picks any program or shortcut.
@@ -42,10 +43,11 @@ Onion Launcher says so when it starts, and the tray icon still works.
 
 ## Install
 
-<img src="docs/images/install.png" width="500" alt="The Install Onion Launcher window: a short description, a 'Start with Windows' checkbox, a picture of the launcher, and Install and Cancel buttons">
+<img src="docs/images/install.png" width="500" alt="The Install Onion Launcher window: a short description, the hotkey box, a 'Start with Windows' checkbox, a picture of the launcher, and Install and Cancel buttons">
 
 Download `OnionLauncherSetup.exe` from the [latest release](../../releases/latest) and run
-it. It asks whether Onion Launcher should start with Windows; press **Install**. No admin
+it. It shows the hotkey (click it and press new keys to pick your own) and asks whether
+Onion Launcher should start with Windows; press **Install**. No admin
 rights needed: it goes in `%LOCALAPPDATA%\Programs\Onion Launcher`, the Start menu and
 Settings > Apps.
 
